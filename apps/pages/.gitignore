@@ -1,0 +1,19 @@
+# Nuxt 运行时生成目录
+.nuxt
+.output
+.data
+.nitro
+.cache
+
+# 依赖与构建产物
+node_modules
+dist
+
+# 环境变量
+.env
+.env.*
+!.env.example
+
+# 日志与系统文件
+*.log
+.DS_Store

@@ -1,0 +1,9 @@
+{
+  "name": "@yokimind/brand-assets",
+  "version": "1.0.0",
+  "private": true,
+  "description": "品牌静态资源单一真源（favicon / logo 图标与横版字标），web 与 pages 共用",
+  "files": [
+    "public"
+  ]
+}

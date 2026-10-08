@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    // 目标 ECMAScript 版本
+    "target": "ES2022",
+    // 模块系统
+    "module": "NodeNext",
+    // 模块解析策略
+    "moduleResolution": "NodeNext",
+    // 启用所有严格类型检查选项
+    "strict": true,
+    // 生成 .d.ts 声明文件
+    "declaration": true,
+    // 生成 source map
+    "sourceMap": true,
+    // 强制文件名大小写一致
+    "forceConsistentCasingInFileNames": true,
+    // 跳过库类型检查
+    "skipLibCheck": true,
+    // 输出目录由各个子包自行覆盖
+    "outDir": "./dist"
+  }
+}

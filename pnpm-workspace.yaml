@@ -1,0 +1,18 @@
+# pnpm workspace 配置文件
+# 声明哪些目录属于 workspace 包，pnpm 会在这些目录下查找 package.json
+packages:
+  # apps 目录下的所有直接子目录
+  - 'apps/*'
+  # packages 目录下的所有直接子目录
+  - 'packages/*'
+allowBuilds:
+  # @parcel/watcher 为文件监听辅助依赖，无需运行原生构建脚本
+  '@parcel/watcher': false
+  esbuild: true
+  msgpackr-extract: true
+  vue-demi: false
+
+minimumReleaseAge: 0
+patchedDependencies:
+  '@nuxt/cli@3.37.0': patches/@nuxt__cli@3.37.0.patch
+strictPeerDependencies: false

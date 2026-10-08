@@ -1,0 +1,6 @@
+# 墨刻文档公开内容站 robots 配置
+User-agent: *
+Allow: /
+
+# 备注：未来带密码保护的内容页（如加密 wiki 分享）应在页面级 useSeoMeta
+# 中设置 robots: 'noindex'，不要在此逐条列 Disallow（URL 会随内容变化）。

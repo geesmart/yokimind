@@ -1,0 +1,1 @@
+ALTER TABLE "documents" ADD COLUMN "content_md5" varchar(32);

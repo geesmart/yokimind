@@ -1,0 +1,1 @@
+ALTER TABLE "wiki" ADD COLUMN "rag_enabled" boolean DEFAULT false NOT NULL;

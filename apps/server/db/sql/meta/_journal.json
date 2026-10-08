@@ -1,0 +1,216 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1786853537547,
+      "tag": "0000_petite_brother_voodoo",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1787048087408,
+      "tag": "0001_yummy_cardiac",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787652955648,
+      "tag": "0002_lame_human_robot",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787840117998,
+      "tag": "0003_purple_lyja",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1787912504330,
+      "tag": "0004_wet_albert_cleary",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1787912533231,
+      "tag": "0005_mature_hellcat",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788168317497,
+      "tag": "0006_drop_page_private_shares",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788351347371,
+      "tag": "0007_wiki-member-count-default",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788702490093,
+      "tag": "0008_milky_terrax",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788705331409,
+      "tag": "0009_optimal_glorian",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788782756214,
+      "tag": "0010_drop_rag_chunks_for_pgvector",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788782802966,
+      "tag": "0011_recreate_rag_chunks_pgvector",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1788783734156,
+      "tag": "0012_material_mulholland_black",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1788869850504,
+      "tag": "0013_deep_proudstar",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1788957282895,
+      "tag": "0014_fluffy_yellowjacket",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1789610452518,
+      "tag": "0015_loud_sentinels",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1789612837316,
+      "tag": "0016_peaceful_wasp",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1789723200000,
+      "tag": "0017_drop_rag_chunks_for_qdrant",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1789898295340,
+      "tag": "0018_mysterious_swordsman",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1789902824941,
+      "tag": "0019_slim_boomerang",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1789903693303,
+      "tag": "0020_fresh_blink",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1789982024988,
+      "tag": "0021_cynical_miracleman",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1789982044294,
+      "tag": "0022_fantastic_famine",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1789991855913,
+      "tag": "0023_black_young_avengers",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1789993679231,
+      "tag": "0024_public_backfill",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1789997356897,
+      "tag": "0025_overjoyed_grim_reaper",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790220345608,
+      "tag": "0026_parallel_vindicator",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1790220604717,
+      "tag": "0027_quiet_cerise",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1790239348400,
+      "tag": "0028_wise_firedrake",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1790737451936,
+      "tag": "0029_public_ogun",
+      "breakpoints": true
+    }
+  ]
+}

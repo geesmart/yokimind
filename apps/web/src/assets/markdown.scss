@@ -1,0 +1,263 @@
+/* ============================================================================
+   markdown.scss — 编辑器内容区「编辑态专属」样式（Tiptap / ProseMirror）
+   ----------------------------------------------------------------------------
+   职责边界（2026-09 重构）：
+   - 与「内容长相」有关的排版规则（标题/列表/任务列表/代码/表格/图片/
+     块级高亮/响应式等）已抽取到 workspace 共享包 @yokimind/markdown-css
+     （packages/markdown-css/markdown.css），以 .editor-content 与 .help-content
+     双作用域供 apps/web 与 apps/pages 共用，改排版先改共享包；
+   - 本文件只保留「编辑态（ProseMirror 运行时）」专属规则：
+     占位符、块/单元格选中态、AI review 高亮、标题层级图标、
+     任务列表与图片的悬停反馈、`.ProseMirror > p` 段前节奏等。
+   - 引入顺序见 src/main.ts：共享包在前、本文件在后（本地可按需覆盖）。
+   - 所有样式均限定在 .editor-content 作用域内，避免污染全局样式。
+   ============================================================================ */
+
+.editor-content {
+  /* ==========================================================================
+     一、根容器（ProseMirror 编辑区）
+     --------------------------------------------------------------------------
+     - min-height 保证空文档时仍有可点击/可聚焦区域；
+     - 移除 outline 以免聚焦时出现浏览器默认描边（后续用自定义选中态替代）；
+     - 行高基准由共享包的根作用域提供（--md-line-height），此处不再重复。
+     ========================================================================== */
+  .ProseMirror {
+    min-height: 200px;
+    outline: none;
+
+    /* ---- 1.1 占位符提示（Placeholder）----
+       Tiptap Placeholder 扩展通过 data-placeholder 注入文案。
+       用 ::before + float:left 实现「仅当内容为空时显示」的占位效果：
+       - float:left 让占位文字脱离正常流，不参与光标定位；
+       - height:0 避免占位符占据额外高度，保证空行高度一致；
+       - pointer-events:none 防止占位符拦截点击/文本选择。 */
+    p.is-empty::before,
+    h1.is-empty::before,
+    h2.is-empty::before,
+    h3.is-empty::before {
+      content: attr(data-placeholder);
+      float: left;
+      color: var(--md-color-text-disabled); /* 令牌由共享包提供 */
+      pointer-events: none;
+      height: 0;
+    }
+
+    /* 空标题占位符修正：
+       下方标题层级图标规则（h1::before ...）会向标题的 ::before 注入
+       position:absolute / width / margin-left / transform / background-color /
+       mask-* 等声明。空标题的 ::before 同时命中两条规则，占位符规则未声明的
+       属性会从图标规则泄漏，导致占位文字被渲染成「绝对定位小盒」——一字一行竖排。
+       这里显式重置这些泄漏属性，让标题占位符回到与段落一致的行内浮动布局；
+       其中 background: none 会清掉图标着色所需的 background-color，
+       因此空标题只显示占位文字、不显示层级图标。 */
+    h1.is-empty::before,
+    h2.is-empty::before,
+    h3.is-empty::before {
+      position: static;
+      width: auto;
+      margin-left: 0;
+      transform: none;
+      background: none;
+    }
+
+    /* ---- 1.2 块级选中态（NodeSelection）----
+       点击块拖拽手柄 / 拖拽移动块后，整块处于 NodeSelection，
+       ProseMirror 会在选中块的 DOM 上加 ProseMirror-selectednode 类，
+       这里给块级元素加浅色背景提供选中反馈（Notion 式高亮）。
+       图片 / hr 等已有各自的选中样式，不在本规则范围内。 */
+    :is(p, h1, h2, h3, h4, h5, h6, ul, blockquote, pre, [data-block-type='highlight-block']).ProseMirror-selectednode {
+      background-color: rgba(47, 116, 255, 0.08);
+      border-radius: var(--md-radius-sm);
+      transition: background-color 0.15s ease;
+    }
+
+    /* ---- 1.3 AI 待审核内容高亮（review 阶段）----
+       AI 生成的内容在进入审核阶段后与正文做背景区分，
+       由 AiReviewHighlight 扩展通过 ProseMirror Decoration 给 AI 范围内的
+       外层块级节点加 ai-review-block 类：
+       - 纯视图层装饰，不写入文档 JSON，保存 / 复制 / 导出均不带高亮；
+       - 应用 / 丢弃结束会话后装饰自动消失；
+       - 颜色与 1.2 选中态同色系、透明度略低，避免与块选中反馈混淆。 */
+    .ai-review-block {
+      background-color: rgba(47, 116, 255, 0.06);
+      border-radius: var(--md-radius-sm);
+      transition: background-color 0.15s ease;
+    }
+
+    /* ---- 1.4 段落段前节奏（编辑器上下文专属）----
+       仅第一层段落（.ProseMirror 的直接子元素）获得 10px 段前距；
+       段落基础字号/上边距归零由共享包的 p 规则提供。
+       pages 发布页（裸 HTML 无 .ProseMirror）在 help-content.css 中
+       以 .help-content > p 复刻同款节奏。 */
+    > p {
+      margin-top: 10px;
+    }
+  }
+
+  /* ==========================================================================
+     二、标题层级图标（编辑态 gutter 标识）
+     --------------------------------------------------------------------------
+     在 h1-h6 左侧常驻显示对应的 lucide 标题图标：
+     - 使用 ::before 伪元素实现，避免侵入 Tiptap 数据模型；
+     - 纯 lucide 线条图标（无边框 / 无底色），观感与块菜单「转换为」里的
+       Heading1-6 图标一致；
+     - 颜色策略：图标用 CSS mask 渲染——mask-image 提供形状、background-color
+       提供颜色（data URI 里 stroke 统一写黑色即可，mask 只看 alpha 通道，
+       不参与着色）。默认浅灰弱存在感，鼠标悬停哪个标题，哪个标题的图标
+       加深突出，0.15s 过渡跟随（旧的 background-image 方案颜色烤死在
+       SVG 里，无法随 hover 变色）；
+     - 常驻显示：桌面端图标悬在标题左侧的页槽（gutter）里，
+       依赖内容列的 ml-16（64px）+ 页面 px-8（32px）提供左侧空间；
+       移动端（≤640px） gutter 空间不足，由下方媒体查询把图标移进标题
+       预留的 padding-left: 36px 内，避免负 margin 越界被裁切；
+     - 仅编辑器（含 AI 预览的只读实例）生效——发布页（pages）不带图标，
+       故本组规则不进共享包；
+     - 空标题场景由上方 .is-empty 兜底规则接管：其 background: none 会同时
+       清掉 mask 显示所需的 background-color，空标题只显示占位文字无图标。
+  */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    position: relative; /* 图标 ::before 绝对定位的基准（共享包的标题规则刻意不含） */
+
+    &::before {
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      /* 默认浅灰（比 --md-color-text-tertiary #737373 再浅一级），hover 加深见 :hover 规则 */
+      background-color: var(--md-color-text-disabled); /* #a1a1a1 */
+      -webkit-mask-repeat: no-repeat;
+      mask-repeat: no-repeat;
+      -webkit-mask-position: center;
+      mask-position: center;
+      -webkit-mask-size: 18px 18px;
+      mask-size: 18px 18px;
+      content: ''; /* 形状由下方各层级的 mask-image 提供 */
+      pointer-events: none;
+      user-select: none;
+      margin-left: -50px;
+      transition: background-color 0.15s ease;
+    }
+
+    /* 悬停所在标题：该标题的图标加深，指示当前层级 */
+    &:hover::before {
+      background-color: #525252;
+    }
+  }
+
+  h1::before {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 12h8'/%3E%3Cpath d='M4 18V6'/%3E%3Cpath d='M12 18V6'/%3E%3Cpath d='m17 12 3-2v8'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 12h8'/%3E%3Cpath d='M4 18V6'/%3E%3Cpath d='M12 18V6'/%3E%3Cpath d='m17 12 3-2v8'/%3E%3C/svg%3E");
+  }
+
+  h2::before {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 12h8'/%3E%3Cpath d='M4 18V6'/%3E%3Cpath d='M12 18V6'/%3E%3Cpath d='M21 18h-4c0-4 4-3 4-6 0-1.5-2-2.5-4-1'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 12h8'/%3E%3Cpath d='M4 18V6'/%3E%3Cpath d='M12 18V6'/%3E%3Cpath d='M21 18h-4c0-4 4-3 4-6 0-1.5-2-2.5-4-1'/%3E%3C/svg%3E");
+  }
+
+  h3::before {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 12h8'/%3E%3Cpath d='M4 18V6'/%3E%3Cpath d='M12 18V6'/%3E%3Cpath d='M17.5 10.5c1.7-1 3.5 0 3.5 1.5a2 2 0 0 1-2 2'/%3E%3Cpath d='M17 17.5c2 1.5 4 .3 4-1.5a2 2 0 0 0-2-2'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 12h8'/%3E%3Cpath d='M4 18V6'/%3E%3Cpath d='M12 18V6'/%3E%3Cpath d='M17.5 10.5c1.7-1 3.5 0 3.5 1.5a2 2 0 0 1-2 2'/%3E%3Cpath d='M17 17.5c2 1.5 4 .3 4-1.5a2 2 0 0 0-2-2'/%3E%3C/svg%3E");
+  }
+
+  h4::before {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 18V6'/%3E%3Cpath d='M17 10v3a1 1 0 0 0 1 1h3'/%3E%3Cpath d='M21 10v8'/%3E%3Cpath d='M4 12h8'/%3E%3Cpath d='M4 18V6'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 18V6'/%3E%3Cpath d='M17 10v3a1 1 0 0 0 1 1h3'/%3E%3Cpath d='M21 10v8'/%3E%3Cpath d='M4 12h8'/%3E%3Cpath d='M4 18V6'/%3E%3C/svg%3E");
+  }
+
+  h5::before {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 12h8'/%3E%3Cpath d='M4 18V6'/%3E%3Cpath d='M12 18V6'/%3E%3Cpath d='M17 13v-3h4'/%3E%3Cpath d='M17 17.7c.4.2.8.3 1.3.3 1.5 0 2.7-1.1 2.7-2.5S19.8 13 18.3 13H17'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 12h8'/%3E%3Cpath d='M4 18V6'/%3E%3Cpath d='M12 18V6'/%3E%3Cpath d='M17 13v-3h4'/%3E%3Cpath d='M17 17.7c.4.2.8.3 1.3.3 1.5 0 2.7-1.1 2.7-2.5S19.8 13 18.3 13H17'/%3E%3C/svg%3E");
+  }
+
+  h6::before {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 12h8'/%3E%3Cpath d='M4 18V6'/%3E%3Cpath d='M12 18V6'/%3E%3Ccircle cx='19' cy='16' r='2'/%3E%3Cpath d='M20 10c-2 2-3 3.5-3 6'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 12h8'/%3E%3Cpath d='M4 18V6'/%3E%3Cpath d='M12 18V6'/%3E%3Ccircle cx='19' cy='16' r='2'/%3E%3Cpath d='M20 10c-2 2-3 3.5-3 6'/%3E%3C/svg%3E");
+  }
+
+  /* ==========================================================================
+     三、任务列表：编辑态交互反馈
+     --------------------------------------------------------------------------
+     复选框方框 / 选中态 / 对勾等「内容长相」规则在共享包；
+     这里只补编辑器的可交互提示（发布页只读，不需要）。
+     ========================================================================== */
+
+  /* 悬停提示可勾选 */
+  ul[data-type='taskList'] li > label {
+    cursor: pointer;
+
+    &:hover {
+      border-color: var(--md-color-accent);
+    }
+  }
+
+  /* ==========================================================================
+     四、表格：编辑态（CellSelection / 列宽调整）
+     --------------------------------------------------------------------------
+     表格外观（边框/圆角/表头/单元格）在共享包；
+     这里只保留单元格选中与列宽拖拽光标等编辑态规则。
+     ========================================================================== */
+
+  /* ---- 4.1 单元格通用选中底色（最终观感由 4.2 紫色覆盖）---- */
+  .selectedCell {
+    background: var(--md-color-border);
+  }
+
+  /* ---- 4.2 整行/整列选中：浅紫背景 ----
+     Tiptap 选中整行/列时自动添加 .selectedCell，此处以更高优先级覆盖，
+     用 !important 确保覆盖 Tiptap 默认的蓝色选中样式。 */
+  .ProseMirror .selectedCell {
+    background-color: rgba(112, 57, 255, 0.08) !important;
+  }
+
+  /* ---- 4.3 去掉 Tiptap 默认选中单元格的伪元素边框 ---- */
+  .ProseMirror .selectedCell::after {
+    display: none;
+  }
+
+  /* ---- 4.4 列宽拖拽光标 ---- */
+  .resize-cursor {
+    cursor: col-resize;
+  }
+
+  /* ==========================================================================
+     五、图片：编辑态交互反馈
+     --------------------------------------------------------------------------
+     图片外观（自适应/圆角/对齐/描边/阴影）在共享包；
+     这里只保留编辑器的悬停/指针反馈。
+     ========================================================================== */
+  .ProseMirror img {
+    transition: var(--md-transition);
+    cursor: pointer;
+  }
+
+  /* ==========================================================================
+     六、响应式适配（小屏设备）——编辑态图标位移
+     --------------------------------------------------------------------------
+     共享包的移动端排版压缩在 @yokimind/markdown-css；
+     这里只处理标题层级图标在窄屏下的位移：
+     图标从 gutter（桌面 margin-left: -50px）移进标题自身预留的
+     padding-left: 36px 内，否则常显图标的负 margin 会越出视口被裁切；
+     尺寸沿用桌面 18x18 无需覆盖。
+     ========================================================================== */
+  @media (max-width: 640px) {
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      padding-left: 36px;
+
+      &::before {
+        margin-left: 0; /* 覆盖桌面的 -50px：放进标题预留的 padding 内 */
+      }
+    }
+  }
+}

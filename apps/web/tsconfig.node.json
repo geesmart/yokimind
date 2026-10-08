@@ -1,0 +1,20 @@
+{
+  // 继承根目录的 TypeScript 基础配置
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // 使用 ES 模块
+    "module": "ESNext",
+    // Bundler 解析策略
+    "moduleResolution": "Bundler",
+    // 仅做类型检查，不输出文件
+    "noEmit": true,
+    // 包含 Node.js 内置模块类型
+    "types": [
+      "node"
+    ],
+    // 允许合成默认导入
+    "allowSyntheticDefaultImports": true
+  }
+  // 仅包含 Node.js 环境下运行的配置文件
+  //  "include": ["vite.config.ts", "eslint.config.*", "tailwind.config.*", "postcss.config.*"]
+}

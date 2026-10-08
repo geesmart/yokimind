@@ -1,0 +1,32 @@
+import pluginVue from 'eslint-plugin-vue'
+import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript'
+
+/**
+ * ESLint Flat Config 配置
+ * 集成 Vue 与 TypeScript 推荐规则
+ */
+export default defineConfigWithVueTs(
+  // Vue 基础规则（essential 级别）
+  pluginVue.configs['flat/essential'],
+  // TypeScript 推荐规则
+  vueTsConfigs.recommended,
+  {
+    // 配置全局变量，标记为浏览器环境
+    languageOptions: {
+      globals: {
+        document: 'readonly',
+        navigator: 'readonly',
+        window: 'readonly',
+      },
+    },
+    // 自定义规则
+    rules: {
+      // 允许单字组件名（模板中示例组件可能较短）
+      'vue/multi-word-component-names': 'off',
+    },
+  },
+  {
+    // 忽略不需要检查的文件和目录
+    ignores: ['dist/', 'node_modules/', 'public/'],
+  }
+)

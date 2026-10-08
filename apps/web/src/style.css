@@ -1,0 +1,181 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn-vue/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-sans: 'Inter Variable', sans-serif;
+    --font-heading: var(--font-sans);
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+    /* 旧版 Safari（< 16.4，含 QQ/微信等内置 WKWebView）不支持 @property 注册自定义属性，
+     * Tailwind v4 的 border-b/border/divide-* 等工具类编译产物形如
+     * `border-bottom-style: var(--tw-border-style)`，默认值 solid 全靠
+     * `@property --tw-border-style { initial-value: solid }` 提供；
+     * 不支持 @property 时该变量解析失败 → border-style 退化为初始值 none，
+     * 表现为「宽度 1px 还在但边框整体不可见」（颜色 oklch 15.4+/color-mix 16.2+ 均正常，
+     * 所以页面只有边框消失）。
+     * 这里在 :root 显式声明兜底：旧 Safari 走普通自定义属性继承链取到 solid；
+     * 新浏览器该变量已注册为 inherits:false，:root 声明不影响后代取 initial-value，
+     * 行为与原生完全一致（border-dashed 等显式声明仍按元素自身值生效）。 */
+    --tw-border-style: solid;
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.205 0 0);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.97 0 0);
+    --secondary-foreground: oklch(0.205 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --accent: oklch(0.97 0 0);
+    --accent-foreground: oklch(0.205 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.922 0 0);
+    --input: oklch(0.922 0 0);
+    --ring: oklch(0.708 0 0);
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --radius: 0.625rem;
+    --sidebar: oklch(0.985 0 0);
+    --sidebar-foreground: oklch(0.145 0 0);
+    --sidebar-primary: oklch(0.205 0 0);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.97 0 0);
+    --sidebar-accent-foreground: oklch(0.205 0 0);
+    --sidebar-border: oklch(0.922 0 0);
+    --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.922 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.269 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.556 0 0);
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+    * {
+        @apply border-border outline-ring/50;
+    }
+
+    body {
+        @apply bg-background text-foreground;
+        @apply font-sans;
+    }
+}
+
+/* ============================================================
+ * 全局基础样式
+ * ============================================================ */
+
+/* 让 html/body/#app 撑满整个视口高度，
+ * 配合 flex 布局实现"顶栏固定 + 内容区滚动"的全屏布局。 */
+html,
+body,
+#app {
+    height: 100%;
+}
+
+/* 字体渲染优化：
+ * - 全局 font-family 统一由 @theme 的 --font-sans 令牌 + body 的 font-sans 类提供，
+ *   不要再在这里写死 font-family（非 layer 裸规则会盖过 @layer base，导致令牌失效）；
+ * - 开启抗锯齿，让文字在 Mac/高清屏上显示更平滑清晰。 */
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* 统一可交互元素的鼠标指针为"手型"（cursor-pointer）。
+ * Tailwind v4 preflight 把 button 的 cursor 重置为 default，这里全局恢复手型；
+ * 覆盖范围：链接、按钮（禁用态除外）、role=button/switch/menuitem 等非 button
+ * 的可交互元素（如 shadcn-vue 的 DropdownMenuItem 是 div[role=menuitem]）。
+ * 不可点击的纯展示区域（卡片容器、表格行等）不加，避免误导。 */
+a,
+button:not(:disabled),
+[role='button']:not(:disabled),
+[role='switch']:not(:disabled),
+[role='menuitem']:not([data-disabled]) {
+    @apply cursor-pointer;
+}
+
+:focus {
+    outline: none;
+}
+
+:focus-visible {
+    outline: none;
+    /*box-shadow: 0 0 0 2px #3b82f6; !* 键盘导航时保留可见指示 *!*/
+}

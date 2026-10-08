@@ -1,0 +1,667 @@
+/* ============================================================================
+   markdown.css — Markdown 正文排版共享样式（@yokimind/markdown-css）
+   ----------------------------------------------------------------------------
+   定位：
+   - apps/web（编辑器 / AI 预览，作用域类 .editor-content）与
+     apps/pages（发布页 v-html 正文，作用域类 .help-content）
+     共用的「内容排版」单一来源（single source of truth）。
+   - 排版基准：web 编辑器（apps/web/src/assets/markdown.scss）的现值；
+     pages 发布页通过本地差异层（help-content.css）补齐发布态专属规则后跟随。
+   - 修改任何排版规则请只改本文件，两端构建时自动同步；不要在两端各写一份。
+
+   作用域约定：
+   - 根选择器统一写 `:is(.editor-content, .help-content)`，
+     特异性取参数中最高者 = 单类 (0,1,0)，与两端原先的单类作用域完全等价，
+     不改变任何既有覆盖关系，也无需改动两端模板里的类名；
+   - 全文件采用扁平选择器（不依赖 CSS 嵌套语法），任何构建链零转换直出。
+
+   分层约定（谁放哪里）：
+   - 本文件：与「内容长相」有关的全部规则（标题/列表/任务列表/代码/表格/
+     图片/块级高亮/响应式），两端共用；
+   - web 本地（markdown.scss）：仅编辑态专属——ProseMirror 占位符、
+     块/单元格选中态、AI review 高亮、标题层级图标、label/img 悬停反馈、
+     `.ProseMirror > p` 段前节奏；
+   - pages 本地（help-content.css）：仅发布态专属——容器首尾贴边、
+     sticky 页头锚点 scroll-margin、`.help-content > p` 段前节奏
+     （发布 HTML 无 .ProseMirror 包裹，需自行复刻段前间距）。
+   ============================================================================ */
+
+/* ============================================================================
+   一、设计令牌（Design Tokens）
+   --------------------------------------------------------------------------
+   以 CSS 自定义属性集中管理颜色 / 字体 / 圆角 / 间距等设计变量：
+   - 便于统一维护与后续「主题化 / 换肤」扩展；
+   - 仅在内容作用域内生效，不影响全局；
+   - 性能上由浏览器缓存解析结果，无额外运行时开销。
+   ============================================================================ */
+:is(.editor-content, .help-content) {
+  --md-color-text: #171717; /* 主文本（标题、强调） */
+  --md-color-text-secondary: #404040; /* 次文本（正文） */
+  --md-color-text-tertiary: #737373; /* 弱文本（已完成任务） */
+  --md-color-text-disabled: #a1a1a1; /* 占位符等禁用态文本（web 编辑态使用） */
+  --md-color-accent: #2f74ff; /* 品牌主色（链接、选中框） */
+  --md-color-quote-border: #d4d4d4; /* 引用左边框（灰色竖线，浅灰弱存在感） */
+  --md-color-border: rgba(115, 115, 115, 0.12); /* 轻量边框 / 分隔线 */
+  --md-color-border-strong: rgba(115, 115, 115, 0.36); /* 复选框边框 */
+  --md-color-code-bg: rgba(115, 115, 115, 0.08); /* 代码背景 */
+  --md-color-table-header-bg: #f5f5f5; /* 表头背景 */
+  --md-radius-sm: 4px; /* 小圆角（行内代码） */
+  --md-radius-md: 8px; /* 中圆角（代码块 / 表格） */
+  --md-font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --md-transition: all 0.15s ease; /* 统一过渡时长，保证交互一致 */
+  --md-line-height: 1.8; /* 正文行高，保证中文可读性 */
+
+  /* ---- 根容器排版基准 ----
+     - 行高作为全部正文排版的基准（标题 / 列表等各自的行高按需覆盖）；
+     - 正文色统一取 token 设计值（web 端原先靠继承 app 前景色，现对齐令牌）；
+     - word-break / overflow-wrap 防止无空格长串（URL / 英文）撑破容器。 */
+  line-height: var(--md-line-height);
+  color: var(--md-color-text-secondary);
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* ============================================================================
+   二、基础排版
+   ========================================================================== */
+
+/* ---- 2.1 段落 ----
+   仅定字号与归零上边距（Tailwind preflight 亦会归零 margin，此处显式兜底）；
+   「段前 10px」的第一层节奏由两端各自补：
+   - web：.ProseMirror > p（见 markdown.scss）；
+   - pages：.help-content > p（见 help-content.css，发布 HTML 无 .ProseMirror）。 */
+:is(.editor-content, .help-content) p {
+  margin-top: 0;
+  font-size: 16px;
+}
+
+/* ---- 2.2 水平分割线（hr）----
+   仅定上下间距；边框外观交给两端 Tailwind preflight（1px、color: inherit），
+   与 web 编辑器现状一致，pages 发布页跟随。 */
+:is(.editor-content, .help-content) hr {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+/* ---- 2.3 标题（h1 - h6）----
+   统一 600 字重与主文本色，仅通过字号与上下间距区分层级，
+   形成清晰的视觉层级。
+   注意：这里不写 position: relative——web 编辑态的标题层级图标
+   （::before 绝对定位）依赖它，由 web 本地 markdown.scss 自带。 */
+:is(.editor-content, .help-content) h1,
+:is(.editor-content, .help-content) h2,
+:is(.editor-content, .help-content) h3,
+:is(.editor-content, .help-content) h4,
+:is(.editor-content, .help-content) h5,
+:is(.editor-content, .help-content) h6 {
+  color: var(--md-color-text);
+  font-weight: 600;
+}
+
+:is(.editor-content, .help-content) h1 {
+  margin: 26px 0 10px;
+  font-size: 28px;
+  line-height: 36px;
+}
+
+:is(.editor-content, .help-content) h2 {
+  margin: 21px 0 5px;
+  font-size: 24px;
+  line-height: 32px;
+}
+
+:is(.editor-content, .help-content) h3 {
+  margin: 16px 0 5px;
+  font-size: 20px;
+  line-height: 28px;
+}
+
+:is(.editor-content, .help-content) h4 {
+  margin: 10px 0 5px;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+:is(.editor-content, .help-content) h5 {
+  margin: 8px 0 5px;
+  font-size: 15px;
+  line-height: 24px;
+}
+
+:is(.editor-content, .help-content) h6 {
+  margin: 8px 0 5px;
+  font-size: 14px;
+  line-height: 24px;
+}
+
+/* ---- 2.4 链接 ---- */
+:is(.editor-content, .help-content) a {
+  color: var(--md-color-accent);
+  text-decoration: underline;
+}
+
+/* ============================================================================
+   三、列表（无序 / 有序）
+   --------------------------------------------------------------------------
+   两者共用相同的字号与行高，仅 list-style 不同；
+   通过 li 内段落与末项间距的控制，消除列表嵌套时的多余空白。
+   ========================================================================== */
+
+/* ---- 3.1 无序列表 ----
+   上下 10px 内边距承担列表与前后内容的间距（发布态裸 HTML 同样生效）。 */
+:is(.editor-content, .help-content) ul {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  padding-left: 20px;
+  list-style: disc;
+  color: var(--md-color-text-secondary);
+  font-size: 14px;
+  line-height: var(--md-line-height);
+}
+
+:is(.editor-content, .help-content) ul li:last-child {
+  margin-bottom: 0;
+}
+
+/* 通用兜底：隐藏列表内所有原生 input（兼容任务列表等场景） */
+:is(.editor-content, .help-content) ul li input {
+  width: 0;
+  height: 0;
+  opacity: 0;
+}
+
+/* ---- 3.2 有序列表 ----
+   使用 CSS 计数器实现多级编号（1. / 1.1. / 1.1.1.）：
+   - counter-reset 在每层 <ol> 上重置计数器，嵌套 <ol> 会新建独立计数作用域；
+   - li 递增计数器，::before 通过 counters(item, '.') 收集所有层级计数，
+     以 '.' 连接输出，从而得到 1.1 这样的多级编号；
+   - li 使用 flex 布局：编号 ::before 按实际文字宽度自动占位，与正文同行，
+     无需手工计算预留宽度，任何层级都不会与正文重叠；
+   - 嵌套 <ol> 通过 flex-basis:100% 换行到独立一行，缩进由 ol 自身 padding 提供。 */
+:is(.editor-content, .help-content) ol {
+  counter-reset: item; /* 每个 ol 独立计数，嵌套层级自动新建作用域 */
+  padding-left: 10px;
+  list-style: none; /* 隐藏原生编号，改用 ::before 绘制 */
+  color: var(--md-color-text-secondary);
+  font-size: 14px;
+  line-height: var(--md-line-height);
+}
+
+:is(.editor-content, .help-content) ol li {
+  counter-increment: item; /* 每项递增当前层计数 */
+  display: flex; /* 编号与正文同行布局 */
+  flex-wrap: wrap; /* 嵌套 <ol> 放不下时自动换到下一行 */
+  align-items: baseline; /* 编号与正文首行基线对齐 */
+}
+
+:is(.editor-content, .help-content) ol li::before {
+  content: counters(item, '.') '. '; /* 收集各层计数，如 1.1. */
+  flex: 0 0 auto; /* 编号宽度由自身内容决定，计入布局，无需预留宽度 */
+  margin-right: 10px; /* 编号与正文的间距 */
+  font-size: 14px; /* 编号字号与列表正文区分，稍大更清晰 */
+  white-space: nowrap; /* 防止长编号换行 */
+  line-height: 28px;
+}
+
+/* 正文段落占据剩余宽度，保证长文本正常换行 */
+:is(.editor-content, .help-content) ol li > p {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+/* 嵌套 <ol>：强制换行到独立一行，缩进由 ol 自身 padding 提供 */
+:is(.editor-content, .help-content) ol li > ol {
+  flex-basis: 100%;
+}
+
+:is(.editor-content, .help-content) ol li:last-child {
+  margin-bottom: 0;
+}
+
+/* ============================================================================
+   四、任务列表（TaskList）
+   --------------------------------------------------------------------------
+   Tiptap 任务列表由「原生 checkbox + 自定义 label 方框」构成：
+   - 隐藏原生 input，仅保留可访问性语义；
+   - 用 label 绘制自定义复选框，父级 flex 实现「方块 + 文字」水平排列；
+   - 通过 data-checked 属性切换选中态（蓝底 + 白色对勾 SVG）。
+   注意：label 的 cursor:pointer 与 :hover 反馈是编辑态交互，
+   由 web 本地 markdown.scss 提供；发布页（pages）只读不交互，不带。
+   ========================================================================== */
+
+/* ---- 4.1 容器：去除默认列表样式 ---- */
+:is(.editor-content, .help-content) ul[data-type='taskList'] {
+  list-style: none;
+  padding-left: 0;
+}
+
+/* ---- 4.2 任务项：flex 布局，复选框与文字水平排列 ---- */
+:is(.editor-content, .help-content) ul[data-type='taskList'] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 6px;
+  line-height: 1.6;
+}
+
+/* ---- 4.3 复选框：<label> 本身作为 18px 可视方框 ----
+   Tiptap v3 的 TaskItem NodeView 会给内部 <span> 注入一段
+   「视觉隐藏」内联样式（position:absolute; width/height:1px;
+   clip:rect(0,0,0,0)），内联样式优先于样式表，故原先「用 span 画方框」
+   的方案无法生效。这里改为直接把 <label> 当作方框：
+   - 原生 checkbox 与 Tiptap 的无障碍 span 均保持视觉隐藏，
+     由 label 的点击激活原生 checkbox，保证勾选交互与语义不变；
+   - 方框样式全部加在 label 上，无需与内联样式对抗。 */
+:is(.editor-content, .help-content) ul[data-type='taskList'] li > label {
+  position: relative;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-top: 4px;
+  background-color: #ffffff;
+  border: 1.5px solid var(--md-color-border-strong);
+  border-radius: 4px;
+  transition: var(--md-transition);
+}
+
+/* ---- 4.4 隐藏原生 checkbox（保留语义，交由 label 方框呈现）---- */
+:is(.editor-content, .help-content) ul[data-type='taskList'] li label input[type='checkbox'] {
+  position: absolute; /* 移出文档流，避免影响布局 */
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---- 4.5 选中态：蓝底 + 白边 ---- */
+:is(.editor-content, .help-content) ul[data-type='taskList'] li[data-checked='true'] > label {
+  background-color: var(--md-color-accent);
+  border-color: var(--md-color-accent);
+}
+
+/* ---- 4.6 选中态对勾：内联 SVG data URI ----
+   使用 data URI 可避免额外网络请求，提升首屏加载性能；
+   通过 background-size: contain 保证对勾随盒子等比缩放。 */
+:is(.editor-content, .help-content) ul[data-type='taskList'] li[data-checked='true'] > label::after {
+  content: '';
+  width: 14px;
+  height: 14px;
+  background-image: url('data:image/svg+xml,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22currentColor%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20clip-rule%3D%22evenodd%22%20d%3D%22M21.4142%204.58579C22.1953%205.36683%2022.1953%206.63317%2021.4142%207.41421L10.4142%2018.4142C9.63317%2019.1953%208.36684%2019.1953%207.58579%2018.4142L2.58579%2013.4142C1.80474%2012.6332%201.80474%2011.3668%202.58579%2010.5858C3.36683%209.80474%204.63317%209.80474%205.41421%2010.5858L9%2014.1716L18.5858%204.58579C19.3668%203.80474%2020.6332%203.80474%2021.4142%204.58579Z%22%20fill%3D%22white%22%2F%3E%3C%2Fsvg%3E');
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* ---- 4.7 已完成任务：文字删除线 + 变浅 ----
+   同时作用于直接段落与内部嵌套段落，保证嵌套任务同样生效。 */
+:is(.editor-content, .help-content) ul[data-type='taskList'] li[data-checked='true'] > div {
+  text-decoration: line-through;
+  color: var(--md-color-text-tertiary);
+}
+
+:is(.editor-content, .help-content) ul[data-type='taskList'] li[data-checked='true'] > div p {
+  text-decoration: line-through;
+  color: var(--md-color-text-tertiary);
+}
+
+/* ============================================================================
+   五、代码（行内 code 与代码块 pre）
+   --------------------------------------------------------------------------
+   - 统一使用等宽字体 + tabular-nums，保证数字/代码对齐；
+   - 代码背景使用低透明度灰，可同时适配浅色主题；
+   - 代码块 overflow-x:auto 处理超长行，避免撑破布局。
+   ========================================================================== */
+
+/* ---- 5.1 行内代码 ---- */
+:is(.editor-content, .help-content) code {
+  font-family: var(--md-font-mono);
+  font-size: 14px;
+  background: var(--md-color-code-bg);
+  color: var(--md-color-text);
+  border-radius: var(--md-radius-sm);
+  padding: 1px 4px;
+  font-variant-numeric: tabular-nums; /* 等宽数字，对齐代码 */
+}
+
+/* ---- 5.2 代码块 ---- */
+:is(.editor-content, .help-content) pre {
+  background: var(--md-color-code-bg);
+  border: 1px solid var(--md-color-border);
+  border-radius: var(--md-radius-md);
+  padding: 12px 16px;
+  margin: 10px 0;
+  overflow-x: auto; /* 长行横向滚动，防止撑破容器 */
+  font-family: var(--md-font-mono);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+/* ---- 5.3 代码块内 code：继承 pre 底色与字号，避免双重背景 ---- */
+:is(.editor-content, .help-content) pre code {
+  background: transparent;
+  padding: 0;
+  font-size: inherit;
+}
+
+/* ============================================================================
+   六、引用块（blockquote）
+   --------------------------------------------------------------------------
+   左侧 3px 灰色竖线 + 内缩距，形成清晰的引用视觉；
+   quotes:none 去除浏览器默认引号，避免与文档内容重复。
+   border-left 用完整简写显式声明 width/style/color，
+   不依赖 Tailwind preflight 的 border-style 兜底。
+   ========================================================================== */
+:is(.editor-content, .help-content) blockquote {
+  border-left: 3px solid var(--md-color-quote-border);
+  quotes: none;
+  color: var(--md-color-text-secondary);
+  padding-left: 1rem;
+  font-style: normal;
+  font-weight: 400;
+  margin: 10px 0;
+}
+
+/* ============================================================================
+   七、表格
+   --------------------------------------------------------------------------
+   - table-layout:fixed 固定布局，防止无空格超长英文撑破表格；
+   - 单元格 word-break / overflow-wrap 双写，兼容新旧浏览器换行行为；
+   - 表头浅灰底 + 500 字重，与正文区分。
+   ========================================================================== */
+
+/* ---- 7.1 表格容器（Tiptap TableWrapper）----
+   发布 HTML 中表格亦被 .tableWrapper 包裹，两端同构。 */
+:is(.editor-content, .help-content) .tableWrapper {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+/* ---- 7.2 表格主体 ----
+   使用 border-collapse: separate + border-spacing: 0 替代 collapse，
+   以便 border-radius 生效（collapse 模式下圆角无法正常渲染）；
+   overflow: hidden 裁切超出圆角区域的表头背景与单元格边框。 */
+:is(.editor-content, .help-content) table {
+  width: 100%;
+  border: 1px solid var(--md-color-border); /* 外边框：提供上/左/右/下外缘 */
+  border-collapse: separate; /* 分离边框，使 border-radius 生效 */
+  border-spacing: 0; /* 消除分离边框的默认间隙 */
+  border-radius: var(--md-radius-md); /* 表格整体圆角 */
+  overflow: hidden; /* 裁切圆角外的表头背景与边框，保证圆角平滑 */
+  margin: 0 0 16px;
+  font-size: 14px;
+  table-layout: fixed; /* 固定布局，防止超长内容无限撑开 */
+}
+
+/* ---- 7.3 单元格通用 ----
+   采用「table 外边框 + 单元格内边线」实现：
+   - 单元格仅保留右边线与下边线，避免 separate 模式下相邻单元格边框叠加成双线；
+   - 外层上/左/右/下边框由 table 统一提供，保证圆角平滑。 */
+:is(.editor-content, .help-content) th,
+:is(.editor-content, .help-content) td {
+  border: none;
+  border-right: 1px solid var(--md-color-border);
+  border-bottom: 1px solid var(--md-color-border);
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: top;
+  min-width: 1em;
+  /* 兼容性：word-break 为旧基线，overflow-wrap 为推荐写法，双写覆盖现代浏览器 */
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: normal; /* 允许正常换行 */
+}
+
+/* 末列去掉右边线，交由 table 外边框，避免外缘双线 */
+:is(.editor-content, .help-content) th:last-child,
+:is(.editor-content, .help-content) td:last-child {
+  border-right: none;
+}
+
+/* 末行去掉下边线，交由 table 外边框，保证圆角处无凸出 */
+:is(.editor-content, .help-content) tr:last-child th,
+:is(.editor-content, .help-content) tr:last-child td {
+  border-bottom: none;
+}
+
+/* ---- 7.4 表头 ---- */
+:is(.editor-content, .help-content) th {
+  background: var(--md-color-table-header-bg);
+  font-weight: 500;
+  color: var(--md-color-text);
+}
+
+/* ---- 7.5 单元格 ---- */
+:is(.editor-content, .help-content) td {
+  color: var(--md-color-text-secondary);
+}
+
+/* ---- 7.6 表格内段落：紧凑排版，避免多余间距 ---- */
+:is(.editor-content, .help-content) table p {
+  line-height: 1;
+  margin-top: 0;
+  margin-bottom: 0;
+  padding: 2px;
+  font-size: 15px;
+}
+
+/* ============================================================================
+   八、图片
+   --------------------------------------------------------------------------
+   - 图片默认 max-width:100% 自适应，避免溢出容器；
+   - data-align 属性控制左/中/右对齐（float 或 block 居中）；
+   - data-style 提供描边 / 阴影两种预设外观。
+   悬停反馈与选中描边为编辑态专属，由 web 本地 markdown.scss 提供。
+   ========================================================================== */
+
+/* ---- 8.1 图片默认样式 ---- */
+:is(.editor-content, .help-content) img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+}
+
+/* ---- 8.2 左对齐：float 环绕文字 ---- */
+:is(.editor-content, .help-content) img[data-align='left'] {
+  text-align: left;
+  margin: 1rem 1rem 1rem 0;
+}
+
+/* ---- 8.3 居中：block + 自动外边距 ---- */
+:is(.editor-content, .help-content) img[data-align='center'] {
+  display: block;
+  margin: 20px auto;
+}
+
+/* ---- 8.4 右对齐：float 环绕文字 ---- */
+:is(.editor-content, .help-content) img[data-align='right'] {
+  text-align: right;
+  margin: 1rem 0 1rem 1rem;
+}
+
+/* ---- 8.5 预设样式：描边 ---- */
+:is(.editor-content, .help-content) img[data-style='stroke'] {
+  border: 2px solid var(--md-color-border, #e2e8f0);
+}
+
+/* ---- 8.6 预设样式：阴影 ---- */
+:is(.editor-content, .help-content) img[data-style='shadow'] {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================================================
+   九、块级高亮（Block Highlight）
+   --------------------------------------------------------------------------
+   与行内 Highlight mark 不同：作用于整个 paragraph/heading 块，
+   通过 data-block-color 属性渲染浅填充色 + 同色系边框，
+   视觉风格对齐 Notion callout / 截图中的紫色背景框。
+
+   属性来源：web 端 extensions/block-highlight.ts 中 addGlobalAttributes 注入，
+   颜色常量：utils/constants.ts → BLOCK_HIGHLIGHT_COLORS（10 色）；
+   属性随 contentHtml 原样输出到发布页，故本组规则两端共用。
+   ========================================================================== */
+
+/* ---- 9.1 通用规则：带 data-block-color 的 p/h1~h6 ---- */
+:is(.editor-content, .help-content) p[data-block-color],
+:is(.editor-content, .help-content) h1[data-block-color],
+:is(.editor-content, .help-content) h2[data-block-color],
+:is(.editor-content, .help-content) h3[data-block-color],
+:is(.editor-content, .help-content) h4[data-block-color],
+:is(.editor-content, .help-content) h5[data-block-color],
+:is(.editor-content, .help-content) h6[data-block-color] {
+  padding: 12px 16px;
+  border-radius: 8px;
+  border-width: 1px;
+  border-style: solid;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  padding-left: 16px; /* 兜底覆盖标题可能的左侧预留（web 编辑态图标已改 gutter 方案，保守保留） */
+}
+
+/* ---- 9.2 10 种颜色的具体规则（与 BLOCK_HIGHLIGHT_COLORS 一一对应）---- */
+
+/* 透明（无背景）：虽然 blockColor=transparent 时不会实际渲染 data-block-color 属性，
+   但兜底保留以防万一 */
+:is(.editor-content, .help-content) [data-block-color='transparent'] {
+  background-color: transparent;
+  border-color: transparent;
+}
+
+/* 薰衣草紫 */
+:is(.editor-content, .help-content) [data-block-color='purple'] {
+  background-color: #ede9fe;
+  border-color: #c4b5fd;
+}
+
+/* 天空蓝 */
+:is(.editor-content, .help-content) [data-block-color='blue'] {
+  background-color: #dbeafe;
+  border-color: #93c5fd;
+}
+
+/* 薄荷绿 */
+:is(.editor-content, .help-content) [data-block-color='green'] {
+  background-color: #dcfce7;
+  border-color: #86efac;
+}
+
+/* 柠檬黄 */
+:is(.editor-content, .help-content) [data-block-color='yellow'] {
+  background-color: #fef9c3;
+  border-color: #fde047;
+}
+
+/* 蜜桃橙 */
+:is(.editor-content, .help-content) [data-block-color='orange'] {
+  background-color: #ffedd5;
+  border-color: #fdba74;
+}
+
+/* 珊瑚红 */
+:is(.editor-content, .help-content) [data-block-color='red'] {
+  background-color: #fee2e2;
+  border-color: #fca5a5;
+}
+
+/* 玫瑰粉 */
+:is(.editor-content, .help-content) [data-block-color='pink'] {
+  background-color: #fce7f3;
+  border-color: #f9a8d4;
+}
+
+/* 薄荷青 */
+:is(.editor-content, .help-content) [data-block-color='cyan'] {
+  background-color: #cffafe;
+  border-color: #67e8f9;
+}
+
+/* 岩石灰 */
+:is(.editor-content, .help-content) [data-block-color='gray'] {
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+/* ---- 9.3 容器型高亮块（highlightBlock）：内部可容纳 h1/列表/图片等任意子块 ----
+   外层 div 负责撑起背景色 + 边框 + 圆角；背景/边框颜色复用上方 9.2 的
+   [data-block-color=...] 规则。内部块的默认外边距在此收敛，避免内容贴边。 */
+:is(.editor-content, .help-content) [data-block-type='highlight-block'] {
+  padding: 12px 16px;
+  border-radius: 8px;
+  border-width: 1px;
+  border-style: solid;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+/* 容器无背景色时的兜底：透明背景 + 透明边框 */
+:is(.editor-content, .help-content) [data-block-type='highlight-block'][data-block-color='transparent'] {
+  background-color: transparent;
+  border-color: transparent;
+}
+
+/* 容器内部子块间距收敛：首尾清除多余外边距，避免内边距 + 子块边距叠加 */
+:is(.editor-content, .help-content) [data-block-type='highlight-block'] > :first-child {
+  margin-top: 0;
+}
+
+:is(.editor-content, .help-content) [data-block-type='highlight-block'] > :last-child {
+  margin-bottom: 0;
+}
+
+/* ============================================================================
+   十、响应式适配（小屏设备）
+   --------------------------------------------------------------------------
+   仅当视口 ≤ 640px 时生效，桌面端视觉保持不变。
+   移动端压缩字号、间距与内边距，保证窄屏可读性。
+   web 编辑态的标题图标位移覆写（media 内）留在本地 markdown.scss。
+   ========================================================================== */
+@media (max-width: 640px) {
+  :is(.editor-content, .help-content) {
+    line-height: 1.7;
+  }
+
+  :is(.editor-content, .help-content) h1 {
+    margin-top: 24px;
+    font-size: 24px;
+    line-height: 28px;
+  }
+
+  :is(.editor-content, .help-content) h2 {
+    margin-top: 20px;
+    font-size: 21px;
+    line-height: 26px;
+  }
+
+  :is(.editor-content, .help-content) h3 {
+    margin-top: 16px;
+    font-size: 18px;
+    line-height: 22px;
+  }
+
+  :is(.editor-content, .help-content) p {
+    font-size: 15px;
+  }
+
+  :is(.editor-content, .help-content) code {
+    font-size: 15px;
+  }
+
+  :is(.editor-content, .help-content) pre {
+    font-size: 12px;
+    padding: 10px 12px;
+  }
+
+  :is(.editor-content, .help-content) th,
+  :is(.editor-content, .help-content) td {
+    padding: 6px 8px;
+  }
+
+  :is(.editor-content, .help-content) ul,
+  :is(.editor-content, .help-content) ol {
+    padding-left: 20px;
+  }
+}

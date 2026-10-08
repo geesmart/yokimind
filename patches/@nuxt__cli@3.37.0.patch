@@ -1,0 +1,32 @@
+diff --git a/dist/dev-DHhrJk9w.mjs b/dist/dev-DHhrJk9w.mjs
+index 3117d2e4e7f541a021afda037ef329d28259152a..a3b6aff8cb8797db672176a90fb6684e907b6c52 100644
+--- a/dist/dev-DHhrJk9w.mjs
++++ b/dist/dev-DHhrJk9w.mjs
+@@ -683,13 +683,21 @@ const start = Date.now();
+ var IPC = class {
+ 	enabled = !!process.send && !process.title?.includes("vitest") && process.env.__NUXT__FORK;
+ 	constructor() {
+-		if (this.enabled) process.once("unhandledRejection", (reason) => {
+-			this.send({
+-				type: "nuxt:internal:dev:rejection",
+-				message: reason instanceof Error ? reason.toString() : "Unhandled Rejection"
+-			});
+-			process.exit();
++		if (this.enabled) process.on("unhandledRejection", (reason) => {
++		// patch: 客户端断开（端口探测器 / 浏览器预连接提前关闭）会抛 ECONNRESET 等
++		// 网络 unhandledRejection，原逻辑一律 process.exit() 导致 dev server 无限重启；
++		// 此类网络噪声仅告警不重启，其余错误维持原「上报 + 退出」行为
++		const isNetworkNoise = reason instanceof Error && /ECONNRESET|EPIPE|ECONNABORTED|ETIMEDOUT/.test(reason.message);
++		if (isNetworkNoise) {
++			console.warn("[nuxt dev] ignored network error from aborted client connection:", reason.message);
++			return;
++		}
++		this.send({
++			type: "nuxt:internal:dev:rejection",
++			message: reason instanceof Error ? reason.toString() : "Unhandled Rejection"
+ 		});
++		process.exit();
++	});
+ 		process.on("message", (message) => {
+ 			if (message.type === "nuxt:internal:dev:context") initialize(message.context, { listenOverrides: message.listenOverrides });
+ 		});

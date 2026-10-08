@@ -1,0 +1,11 @@
+{
+  "name": "@yokimind/markdown-css",
+  "version": "0.0.0",
+  "private": true,
+  "description": "web/pages 共享的 Markdown 正文排版样式（Tiptap 渲染内容，以 web 编辑器排版为基准）",
+  "main": "./markdown.css",
+  "exports": {
+    ".": "./markdown.css",
+    "./markdown.css": "./markdown.css"
+  }
+}
