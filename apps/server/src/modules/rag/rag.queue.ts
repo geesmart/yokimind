@@ -1,5 +1,6 @@
 import { Queue } from 'bullmq'
-import type { ConnectionOptions } from 'bullmq'
+import { Redis } from 'ioredis'
+import type { RedisOptions } from 'ioredis'
 import { usePino } from '~/core/plugins/pino.js'
 
 /**
@@ -30,11 +31,11 @@ export interface RagIndexJobData {
 }
 
 /**
- * 解析 REDIS_URL 为 BullMQ 连接配置
+ * 解析 REDIS_URL 为 ioredis 连接选项
  * 未配置时回退 localhost:6379 db 2（与 .env 默认值一致）
  * maxRetriesPerRequest: null 是 Worker 阻塞连接的必需配置
  */
-function parseRedisUrl(): ConnectionOptions {
+function parseRedisUrl(): RedisOptions {
   const raw = process.env.REDIS_URL || 'redis://127.0.0.1:6379/2'
   try {
     const url = new URL(raw)
@@ -52,10 +53,24 @@ function parseRedisUrl(): ConnectionOptions {
   }
 }
 
-/** BullMQ 连接配置单例（Queue 与 Worker 共用同一套解析结果，各自创建独立连接） */
-export function getRedisConnection(): ConnectionOptions {
-  return parseRedisUrl()
+/**
+ * ioredis 客户端单例（Queue 与 Worker 共用；Worker 内部自动 duplicate 出独立阻塞连接）
+ *
+ * 为什么传实例而不是连接配置：生产 bundle 是 native ESM，BullMQ 无法动态加载
+ * optional peer 'ioredis'（无 require），每次 Worker._getNextJob 都抛
+ * "could not load the optional 'ioredis' package" → retryIfFailed 无延迟 emit('error')
+ * 死循环（实测 30s 内 1800 万次）→ pino 序列化 Error 堆积 → GC 风暴 → OOM。
+ * 传已构造的实例后 BullMQ 不再做动态加载，该坑在 ESM + pnpm 产物下必现。
+ */
+export function getRedisClient(): Redis {
+  if (!redisClient) {
+    redisClient = new Redis(parseRedisUrl())
+  }
+  return redisClient
 }
+
+/** ioredis 客户端单例存储 */
+let redisClient: Redis | null = null
 
 /** Queue 单例（惰性创建） */
 let queue: Queue<RagIndexJobData> | null = null
@@ -72,7 +87,7 @@ let queue: Queue<RagIndexJobData> | null = null
 export function getRagQueue(): Queue<RagIndexJobData> {
   if (!queue) {
     queue = new Queue<RagIndexJobData>(RAG_QUEUE_NAME, {
-      connection: getRedisConnection(),
+      connection: getRedisClient(),
       defaultJobOptions: {
         attempts: 3,
         backoff: { type: 'exponential', delay: 5000 },

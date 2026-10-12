@@ -5,7 +5,7 @@ import { ragSync } from '~/db/schema.js'
 import { usePostgres } from '~/core/plugins/postgres.js'
 import { isEmbeddingReady } from '~/core/lib/ai.js'
 import { usePino } from '~/core/plugins/pino.js'
-import { RAG_QUEUE_NAME, addIndexJob, getRedisConnection, type RagIndexJobData } from './rag.queue.js'
+import { RAG_QUEUE_NAME, addIndexJob, getRedisClient, type RagIndexJobData } from './rag.queue.js'
 import { processJob } from './rag.service.js'
 
 const logger = usePino()
@@ -64,7 +64,7 @@ export function startRagWorker(): Worker<RagIndexJobData> {
   })
 
   worker = new Worker<RagIndexJobData>(RAG_QUEUE_NAME, processRagJob, {
-    connection: getRedisConnection(),
+    connection: getRedisClient(),
     concurrency: CONCURRENCY,
   })
 

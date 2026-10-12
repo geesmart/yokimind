@@ -45,18 +45,8 @@ const mediaController = new Hono()
     const documentId =
       typeof body['documentId'] === 'string' ? (body['documentId'] as string) : undefined
 
-    // 从请求头派生入口 origin（对外 URL 自动跟随访问域名，零配置）：
-    // - 经反代/统一入口（Caddy）时自带 X-Forwarded-Proto/Host，值即浏览器地址栏的 origin，
-    //   本地 yokimind.local:6000、生产任何绑定域名都自动正确
-    // - 多级代理时 X-Forwarded-Host 可能是逗号分隔列表，取第一个（最接近浏览器的一跳）
-    // - 直连 server（无 X-Forwarded-*）时传 undefined，由 storage 的兜底链
-    //   （PUBLIC_ORIGIN / S3_ENDPOINT 直连）决定基址
-    const fwdHost = c.req.header('x-forwarded-host')?.split(',')[0]?.trim()
-    const fwdProto = c.req.header('x-forwarded-proto')?.split(',')[0]?.trim()
-    const entryOrigin = fwdHost ? `${fwdProto || 'http'}://${fwdHost}` : undefined
-
-    // 调用 service 完成落盘 + 入库
-    const result = await uploadImage({ file, userId, wikiId, documentId, entryOrigin })
+    // 调用 service 完成落盘 + 入库（对外 URL 恒为相对路径 /media/{bucket}/{key}，见 storage.buildObjectUrl）
+    const result = await uploadImage({ file, userId, wikiId, documentId })
 
     return c.success(result)
   })

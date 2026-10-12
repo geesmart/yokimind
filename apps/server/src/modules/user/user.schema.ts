@@ -42,8 +42,11 @@ export const UpdateProfileSchema = z.object({
     .min(2, '昵称长度需为 2-50 位')
     .max(50, '昵称长度需为 2-50 位')
     .optional(),
-  // 头像 URL（可选）
-  avatar: z.string().url('头像地址格式不正确').optional().or(z.literal('')),
+  // 头像 URL（可选）：相对路径（/media/{bucket}/{key}，媒体 URL 统一形态）或完整 http(s) 地址
+  avatar: z
+    .union([z.string().regex(/^\/media\//, '头像地址需为 /media/ 相对路径'), z.string().url('头像地址格式不正确')])
+    .optional()
+    .or(z.literal('')),
 })
 
 /**

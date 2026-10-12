@@ -1,4 +1,4 @@
-import 'dotenv/config'
+import '~/core/lib/env.js'
 import { serve } from '@hono/node-server'
 import { showRoutes, showServicesInfo } from '~/core/helper/hono.helper.js'
 import { initPostgres } from '~/core/plugins/postgres.js'

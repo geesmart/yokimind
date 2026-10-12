@@ -1,8 +1,6 @@
 import { defineConfig, type Plugin } from 'vite'
-// @ts-expect-error
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'node:path'
-// @ts-expect-error
 import tailwindcss from '@tailwindcss/vite'
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
@@ -181,14 +179,26 @@ export default defineConfig(() => {
             })
           },
         },
+        // /media/*（对象存储媒体）转发到 rustfs（6012）：媒体 URL 恒为相对路径
+        // /media/{bucket}/{key}（浏览器按当前 origin 解析，见 server storage.buildObjectUrl），
+        // 直连 vite 端口访问 web 时图片也要能加载——rustfs 直连路径无 /media 前缀，需剥掉
+        '/media/': {
+          target: 'http://localhost:6012',
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/media/, ''),
+        },
         // /w/*（帮助中心）、/b/*（博客）、/_nuxt/*（pages 构建产物与 HMR）转发到 pages（6002）：
         // 发布弹窗链接按 window.location.origin 同源派生（publish.ts buildWikiPagesLink），
-        // 直连端口访问 web 时也要能打开公开站——与 docker/Caddyfile.dev 的路径路由同构
-        '/w': {
+        // 直连端口访问 web 时也要能打开公开站——与 Caddyfile.dev 的路径路由同构
+        // 注意：proxy 键是 startsWith 前缀匹配（vite dist/node/chunks/node.js
+        // doesProxyContextMatchUrl），键必须带尾斜杠写成 /w/ /b/ ——
+        // 写 /w 会误吞 /wiki（web 核心路由，被转发到 pages 后 302 回公开站）、
+        // 写 /b 会误吞 /brand（品牌素材页）
+        '/w/': {
           target: 'http://localhost:6002',
           changeOrigin: true,
         },
-        '/b': {
+        '/b/': {
           target: 'http://localhost:6002',
           changeOrigin: true,
         },

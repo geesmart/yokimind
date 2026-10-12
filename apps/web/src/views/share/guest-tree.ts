@@ -77,10 +77,15 @@ export function buildGuestTree(flat: ShareNodeItem[]): GuestTreeItem[] {
 
 /**
  * 在树中递归查找节点
+ * 双 ID 兼容（与服务端 resolveDocumentScope 口径一致）：URL docId 段存在两种历史约定——
+ * - 分享链接（share-dialog 复制）：documents.id（documentId 字段）
+ * - 树导航 / 访客编排器同步的 URL：wikiNodes.id（id 字段）
+ * 先按节点 ID 命中，未命中再按关联文档 ID 兜底，
+ * 保证访客直接打开分享链接（documentId）时能定位到目标节点，而非误判失效回退第一篇
  */
 export function findGuestNode(list: GuestTreeItem[], id: string): GuestTreeItem | null {
   for (const item of list) {
-    if (item.id === id) return item
+    if (item.id === id || (item.documentId && item.documentId === id)) return item
     const found = findGuestNode(item.children, id)
     if (found) return found
   }

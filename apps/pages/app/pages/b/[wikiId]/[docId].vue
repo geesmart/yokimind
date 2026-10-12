@@ -167,10 +167,21 @@ const firstImage = computed<string | null>(() => {
   return walk(doc.value?.content)
 })
 
-/** og:image 仅输出绝对地址（相对路径 /uploads/... 拼绝对地址依赖部署域名，本期不处理） */
+/** SSR 请求的 origin（og:image 拼绝对地址用；Nuxt 自动导入，setup 顶层调用一次） */
+const requestOrigin = useRequestURL().origin
+
+/**
+ * og:image 必须输出绝对地址（爬虫不解析相对路径）：
+ * - 正文图片 src 为相对路径 /media/...（媒体 URL 统一形态）→ 拼 SSR 请求 origin
+ * - 已是 http(s) 绝对地址（存量）→ 原样输出
+ * - 其他（无图/异常形态）→ undefined 不输出
+ */
 const ogImage = computed(() => {
   const src = firstImage.value
-  return src && /^https?:\/\//.test(src) ? src : undefined
+  if (!src) return undefined
+  if (/^https?:\/\//.test(src)) return src
+  if (src.startsWith('/media/')) return `${requestOrigin}${src}`
+  return undefined
 })
 
 // SEO：文章页输出标题 + 正文摘要（前 150 字，缺省回退站点 SEO 描述）+ article og 标签；密码库 noindex 不收录

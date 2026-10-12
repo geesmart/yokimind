@@ -14,7 +14,10 @@
     ],
     // 允许合成默认导入
     "allowSyntheticDefaultImports": true
-  }
-  // 仅包含 Node.js 环境下运行的配置文件
-  //  "include": ["vite.config.ts", "eslint.config.*", "tailwind.config.*", "postcss.config.*"]
+  },
+  // 仅包含 Node.js 环境下运行的配置文件，src/** 由 tsconfig.json 负责。
+  // 注意：不设 include 时 tsc 默认卷入整个目录树（src 全量），
+  // IDE 端 TS server 会因项目过大出现模块解析异常（找不到 vite 等）；
+  // .js 配置（tailwind.config.js）无 allowJs 会被自动跳过，纯模式占位无副作用
+  "include": ["vite.config.ts", "eslint.config.*", "tailwind.config.*", "postcss.config.*"]
 }

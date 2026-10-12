@@ -379,7 +379,27 @@ async function resolveTrashNode(nodeId: string): Promise<WikiDocItem | null> {
  * 过期响应丢弃：期间用户已切换其他文档时，不回写 currentContent
  */
 async function loadDocContent(nodeId: string) {
-  const node = wikiDocStore.findNode(nodeId) ?? (await resolveTrashNode(nodeId))
+  let node = wikiDocStore.findNode(nodeId)
+  if (!node) {
+    // 分享链接兼容：URL docId 段为 documents.id（share-dialog 复制的链接）时，
+    // 树按节点 ID（wikiNodes.id）无法命中 → 按关联文档 ID 反查节点，
+    // 并把 URL 归一化为节点 ID 后直接返回（watch(docId) 会以归一化后的 docId 重新编排加载，
+    // 避免同一文档双重加载；面包屑 / 标题同步 / 回收站判定等下游逻辑均按节点 ID 工作不受影响）
+    const byDocId = wikiDocStore.findNodeByDocumentId(nodeId)
+    if (byDocId) {
+      router.replace({
+        name: 'wiki',
+        params: {
+          wikiId: wikiId.value,
+          docId: byDocId.id,
+          // mode 缺省（瞬态无后缀 URL）按编辑态归一，与 owner 无后缀旧链接的兼容口径一致
+          mode: (route.params.mode as 'edit' | 'view') || 'edit',
+        },
+      })
+      return
+    }
+    node = await resolveTrashNode(nodeId)
+  }
   if (!node) {
     // 节点不在树中且不在回收站（可能树未就绪或链接失效），清空内容
     currentContent.value = null

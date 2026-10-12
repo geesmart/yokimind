@@ -15,6 +15,10 @@ build/
 .env.*.local
 .env.prod
 
+# install.sh 运行时生成（每次安装重建，含明文凭据，禁止入库）
+NOTES.md
+install.log
+
 # IDE
 .idea/
 .vscode/

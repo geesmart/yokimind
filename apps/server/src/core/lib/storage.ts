@@ -9,16 +9,11 @@
  *   ULID + 日期的 key 不可枚举，与原 serveStatic 无鉴权行为一致，不引入额外暴露面。
  *
  * 环境变量：
- * - S3_ENDPOINT   必填，S3 API 地址（容器内如 http://rustfs:9000，宿主开发如 http://localhost:9000）
+ * - S3_ENDPOINT   必填，S3 API 地址（容器内如 http://rustfs:9000，宿主开发如 http://localhost:6012）
  * - S3_BUCKET     必填，桶名（如 yokimind-media）
  * - S3_ACCESS_KEY 必填，访问密钥
  * - S3_SECRET_KEY 必填，秘密密钥
- * - 对外基址（浏览器可达，四级优先级，见 resolvePublicUrl）：
- *   1. S3_PUBLIC_URL 显式覆盖
- *   2. 请求派生（X-Forwarded-Proto/Host，即浏览器地址栏 origin——换域名零配置）
- *   3. PUBLIC_ORIGIN 显式配置的入口 origin
- *   4. 默认 `${S3_ENDPOINT}/${S3_BUCKET}`（同机直连 / 无反代场景）
- *   反代 / 跨机部署时 endpoint（服务端内网）与 public URL（浏览器外网）往往不同
+ * - 对外 URL：恒为相对路径 /media/{bucket}/{key}（见 buildObjectUrl），不派生绝对地址
  */
 import {
   S3Client,
@@ -87,31 +82,22 @@ function resolveConfig() {
   return storageConfig
 }
 
-/** 去除末尾斜杠（origin / endpoint 拼接前统一处理） */
-function stripTrailingSlash(url: string): string {
-  return url.replace(/\/$/, '')
-}
-
 /**
- * 解析对象存储的对外访问基址（浏览器可达），按优先级取第一个命中：
- * 1. S3_PUBLIC_URL        显式覆盖（对象存储走独立域名/CDN 等特殊部署时用）
- * 2. entryOrigin 请求派生 反代/统一入口场景：Caddy 会带 X-Forwarded-Proto/Host，
- *    值即浏览器地址栏的 origin——换域名、换端口自动跟随，零配置
- * 3. PUBLIC_ORIGIN        显式配置的入口 origin（直连 server 无 X-Forwarded-* 头时的兜底）
- * 4. endpoint + bucket    同机直连兜底（无反代时与对外地址一致）
+ * 拼接对象 key 的对外访问 URL：/media/{bucket}/{key}（相对路径）
  *
- * 2/3 都拼 /media/{bucket} 前缀：与 Caddy 的 handle_path /media/* 剥前缀转发
- * （rustfs:9000/{bucket}/...）精确对齐
+ * 浏览器按当前页面 origin 解析，经统一入口 Caddy 的 /media/* 路由
+ * （handle_path 剥 /media 前缀转发 rustfs:9000/{bucket}/{key}）加载：
+ * 换域名、上 HTTPS、前后端口变化全零成本，DB 与文档正文存的就是这个相对路径。
+ * 注意：依赖「所有流量走统一入口」的架构承诺；无 Caddy 的裸跑形态不支持
+ * （外部对象存储/CDN 场景未来引入时，需连同 Caddy /media 上游一并设计）。
+ * bucket 从配置读取（resolveConfig 未配置时抛错，与 getS3Client 的硬依赖语义一致）
  */
-export function resolvePublicUrl(entryOrigin?: string): string {
+export function buildObjectUrl(key: string): string {
   const cfg = resolveConfig()
   if (!cfg) {
-    throw new Error('S3 存储未配置，无法生成对外访问基址')
+    throw new Error('S3 存储未配置，无法生成对外访问 URL')
   }
-  if (process.env.S3_PUBLIC_URL) return stripTrailingSlash(process.env.S3_PUBLIC_URL)
-  if (entryOrigin) return `${stripTrailingSlash(entryOrigin)}/media/${cfg.bucket}`
-  if (process.env.PUBLIC_ORIGIN) return `${stripTrailingSlash(process.env.PUBLIC_ORIGIN)}/media/${cfg.bucket}`
-  return `${stripTrailingSlash(cfg.endpoint)}/${cfg.bucket}`
+  return `/media/${cfg.bucket}/${key}`
 }
 
 /** 存储是否已配置（供启动日志与测试环境判断使用） */
@@ -142,16 +128,6 @@ export function getS3Client(): S3Client {
     })
   }
   return s3Client
-}
-
-/**
- * 拼接对象 key 的对外访问 URL
- * @param key 对象 key（如 uploads/2026-09-29/xxx.jpg）
- * @param entryOrigin 请求派生的入口 origin（反代场景从 X-Forwarded-* 取，见 media.controller）；
- *                    缺省时按 PUBLIC_ORIGIN / endpoint 兜底链解析
- */
-export function buildObjectUrl(key: string, entryOrigin?: string): string {
-  return `${resolvePublicUrl(entryOrigin)}/${key}`
 }
 
 /**

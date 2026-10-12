@@ -13,7 +13,7 @@ export default defineConfig({
   publicDir: false,
   ssr: {
     target: 'node',
-    external: true, // 不打包依赖
+    external: true, // 全部依赖外置：产物不内联 node_modules，运行镜像/分发包安装全量生产依赖
   },
   build: {
     ssr: true,
@@ -23,12 +23,16 @@ export default defineConfig({
     // Vite 8（Rolldown）起 rollupOptions 更名为 rolldownOptions，
     // external / input / output 等子项写法与 Rollup 时代保持一致
     rolldownOptions: {
+      // node 内置模块保持外部；ssr.external: true 时其余依赖已全部外置，
+      // 由运行时 node_modules 解析
       external: [...builtinModules, /^node:/],
       // index：API 服务入口；migrate：程序化迁移入口（分发场景启动流程先执行 migrate）
       input: ['./src/index.ts', './src/db/migrate.ts'],
       output: {
-        // 多入口：dist/index.js、dist/migrate.js（入口名与文件名保持一致）
+        // 多入口：dist/index.js、dist/migrate.js（入口名与文件名保持一致）；
+        // 双入口共享的依赖代码抽到 chunks/（如 dotenv/drizzle 两边都用）
         entryFileNames: '[name].js',
+        chunkFileNames: 'chunks/[name]-[hash].js',
         format: 'esm',
       },
     },

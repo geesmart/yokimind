@@ -402,7 +402,7 @@ export const mediaAssets = pgTable('media_assets', {
   width: integer('width'),
   /** 图片高度（像素，仅图片类型有值，可选） */
   height: integer('height'),
-  /** 对外访问 URL（绝对地址，浏览器直连对象存储，前端直接用作 src） */
+  /** 对外访问 URL（相对路径 /media/{bucket}/{key}，浏览器按当前 origin 解析，前端直接用作 src） */
   url: text('url').notNull(),
   /**
    * 媒体类别（对象键一级前缀）：img / file / video / audio / avatar / export

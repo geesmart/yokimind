@@ -26,7 +26,7 @@ import { ApiError } from '../request'
 export interface UploadImageResult {
   /** 媒体资产 ID（ULID） */
   id: string
-  /** 对外访问 URL（RustFS 对象存储绝对地址，如 http://host:9000/bucket/uploads/2026-08-25/01HXXX.jpg，前端直接用作 <img src>） */
+  /** 对外访问 URL（相对路径 /media/{bucket}/{key}，浏览器按当前 origin 解析，前端直接用作 <img src>） */
   url: string
   /** 存储后的文件名（含扩展名） */
   fileName: string

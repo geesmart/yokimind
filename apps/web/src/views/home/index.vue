@@ -58,7 +58,7 @@
           （原彩色玻璃大 logo 暂时隐藏，需要时恢复 <LogoGlass :size="72" />）
         -->
         <div class="mb-8 flex items-center gap-4">
-          <img src="/logo-yokimind.png" alt="YOKi 文档" class="w-100" />
+          <img src="/logo.png" alt="YokiMind" class="w-100" />
         </div>
 
         <!-- 主标语：渐进字号，小屏 3xl / 大屏 5xl -->

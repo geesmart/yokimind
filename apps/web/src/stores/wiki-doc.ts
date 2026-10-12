@@ -30,6 +30,23 @@ function findNodeInTree(
 }
 
 /**
+ * 在树中按关联文档 ID（documents.id）递归查找节点
+ * @param tree 文档树（子层级）
+ * @param documentId 目标文档 ID（documents.id）
+ * @returns 找到的节点，未找到返回 null
+ */
+function findNodeByDocumentIdInTree(tree: WikiDocItem[], documentId: string): WikiDocItem | null {
+  for (const item of tree) {
+    if (item.documentId === documentId) return item
+    if (item.children && item.children.length > 0) {
+      const found = findNodeByDocumentIdInTree(item.children, documentId)
+      if (found) return found
+    }
+  }
+  return null
+}
+
+/**
  * 递归查找节点的完整父级路径（从根到直接父节点）
  * 用于渲染面包屑导航，返回不含目标节点自身的所有祖先节点
  * @param tree 文档树
@@ -292,6 +309,25 @@ export const useWikiDocStore = defineStore('wiki-doc', () => {
    */
   function findNode(id: string): WikiDocItem | null {
     return findNodeInTree(docTree.value, id)?.node ?? null
+  }
+
+  /**
+   * 按关联文档 ID（documents.id）反查节点
+   * 用途：分享链接的 docId 段是 documents.id（share-dialog 复制），owner 登录态直接打开时
+   * 树按节点 ID（wikiNodes.id）无法命中 → 以 documentId 反查定位节点，
+   * 编排器（wiki/index.vue loadDocContent）据此归一化 URL 为节点 ID
+   * @param documentId 文档 ID（documents.id）
+   * @returns 节点对象（不存在返回 null）
+   */
+  function findNodeByDocumentId(documentId: string): WikiDocItem | null {
+    for (const item of docTree.value) {
+      if (item.documentId === documentId) return item
+      if (item.children && item.children.length > 0) {
+        const found = findNodeByDocumentIdInTree(item.children, documentId)
+        if (found) return found
+      }
+    }
+    return null
   }
 
   /**
@@ -602,6 +638,7 @@ export const useWikiDocStore = defineStore('wiki-doc', () => {
     loadDocs,
     createDoc,
     findNode,
+    findNodeByDocumentId,
     getNodePath,
     toggleOpenKey,
     expandAllFolders,

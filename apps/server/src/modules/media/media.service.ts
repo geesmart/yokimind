@@ -47,15 +47,12 @@ const MIME_TO_EXT: Record<string, string> = {
  * - file: Hono parseBody 返回的 File 对象（web 标准 File，Node 环境下被 @hono/node-server 适配）
  * - userId: 当前登录用户 ID（ULID）
  * - wikiId / documentId: 可选的归属绑定（软关联，便于后续按文档清理无引用图片）
- * - entryOrigin: 请求派生的入口 origin（controller 从 X-Forwarded-* 取，见 media.controller），
- *   用于生成跟随访问域名的对外 URL；缺省走 storage 兜底链
  */
 export interface UploadImageParams {
   file: File
   userId: string
   wikiId?: string
   documentId?: string
-  entryOrigin?: string
 }
 
 /**
@@ -73,7 +70,7 @@ export interface UploadImageParams {
  * @returns 上传成功后的 URL + 元数据
  */
 export async function uploadImage(params: UploadImageParams): Promise<UploadImageResult> {
-  const { file, userId, wikiId, documentId, entryOrigin } = params
+  const { file, userId, wikiId, documentId } = params
 
   // ============ 1. 校验 ============
   if (!file || typeof file === 'string' || !('size' in file)) {
@@ -120,11 +117,11 @@ export async function uploadImage(params: UploadImageParams): Promise<UploadImag
   }
 
   // ============ 4. 写入数据库 ============
-  // 对外 URL：自动跟随访问域名（controller 从 X-Forwarded-* 派生入口 origin 传入，
-  // 见 storage.resolvePublicUrl 的优先级链），换域名/端口零配置
+  // 对外 URL：恒为相对路径 /media/{bucket}/{key}（浏览器按当前 origin 解析，经 Caddy /media 路由加载），
+  // 换域名/上 HTTPS 零成本；见 storage.buildObjectUrl
   let url: string
   try {
-    url = buildObjectUrl(objectKey, entryOrigin)
+    url = buildObjectUrl(objectKey)
   } catch (err) {
     logger?.error({ err }, '[media] 生成对象访问 URL 失败')
     await deleteObject(objectKey)

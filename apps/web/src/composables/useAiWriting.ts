@@ -30,6 +30,7 @@ import { canJoin } from '@tiptap/pm/transform'
 import { toast } from 'vue-sonner'
 import { streamAiWrite, abortAiWrite, getAiStatus, type AiWriteParams } from '@/api/modules/ai'
 import {
+  buildMarkMeta,
   normalizeMarkdownJson,
   normalizeMarkdownSource,
 } from '@/components/notion-editor/utils/normalize-markdown-json'
@@ -940,13 +941,16 @@ export function applyAiContent() {
 
   // 解析为块级 JSON（未注册 Markdown 扩展属异常配置，按解析失败处理）
   // normalizeMarkdownSource：parse 前清理源文本（语雀式内嵌 HTML / 空加粗残留）
-  // normalizeMarkdownJson：parse 后修正（重复 marks 去重 + emoji 短代码 → Unicode emoji
-  // + 段落内行内图片提升为块级，markdown-it 把图片解析为行内 token，
-  // paragraph > image 过不了 schema 校验，见 normalize-markdown-json.ts 注释）
+  // normalizeMarkdownJson：parse 后修正（重复 marks 去重 + 排序 + 互斥消解
+  // + emoji 短代码 → Unicode emoji + 段落内行内图片提升为块级，markdown-it 把
+  // 图片解析为行内 token，paragraph > image 过不了 schema 校验，
+  // 见 normalize-markdown-json.ts 注释）
   const md = normalizeMarkdownSource(normalizeAiMarkdown(aiState.markdown))
   let blocks: JSONContent[] = []
   try {
-    blocks = ed.markdown ? (normalizeMarkdownJson(ed.markdown.parse(md)).content ?? []) : []
+    blocks = ed.markdown
+      ? (normalizeMarkdownJson(ed.markdown.parse(md), buildMarkMeta(ed.schema)).content ?? [])
+      : []
   } catch (err) {
     console.warn('[ai-writing] markdown parse failed on apply', err)
   }
