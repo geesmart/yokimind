@@ -1,179 +1,111 @@
 <p align="center">
-  <img src="/images/banner.png" width="400" alt="YokiMind" />
-  <!-- TODO: banner 图待补充，放入仓库根目录 images/banner.png -->
+  <img src="/packages/brand-assets/public/logo.png" width="400" />
 </p>
-
-<p align="center">
-  <strong>YokiMind · 把你的知识记录，做团队的企业大脑</strong>
-</p>
-
-<p align="center">
-  <!-- TODO: 官方网站与交流群链接待补充 -->
-  <a target="_blank" href="#">📖 官方网站</a> &nbsp; | &nbsp;
-  <a target="_blank" href="/images/wechat.png">🙋‍♂️ 微信交流群</a>
-</p>
+<div align="center" style="font-size: 20px; font-weight: bolder;">
+开源的AI知识协作创作工具·人与AI共创
+</div>
 
 ## 👋 项目介绍
 
-YokiMind 是一款国产开源的 **AI 知识库与文档协作系统**，帮助你快速构建智能化的 **产品文档、技术文档、FAQ、博客系统**：
+YokiMind 是一个开源的AI知识协作创作工具，面向初创公司、企业和智能体的可自托管AI知识库。
 
-- 📚 **国内开源语雀平替**：知识库、文档树、富文本编辑器，团队文档管理的核心能力开箱即用
-- 🤝 **飞书知识库轻量替代**：私有化部署，数据完全自持，没有按人头订阅费
-- 🤖 **ima 同款 AI 知识库**：文档喂进去，基于 RAG 的 AI 问答与 AI 搜索随问随答
-- 🧠 **企业大脑**：把散落各处的知识沉淀为整个组织的第二大脑
+它是 **语雀 + ima + Mintlify** 的开源平替：
+- **像语雀一样协作**：文档、知识库、团队空间、权限、评论、版本历史。
+- **像 ima 一样智能**：基于知识库的 AI 问答、检索、总结与创作。
+- **像 Mintlify 一样优雅**：现代化的文档体验、API 参考、可发布的文档站点。
 
-同时它也是一套开箱即用的 **私有化部署方案**：一条 Docker 命令即可拉起完整服务（应用 + 数据库 + 对象存储 + 向量检索 + 统一入口网关），数据全部留在你自己的服务器上。
+## 为什么选择我们？1
+
 
 <p align="center">
-  <!-- TODO: 产品全景截图待补充，放入 images/setup.png -->
-  <img src="/images/setup.png" width="800" alt="YokiMind 界面总览" />
+**总体编辑器图片**
 </p>
 
 ## ⚡️ 界面展示
 
-<!-- TODO: 四张界面截图待补充，放入 images/screenshot-1.png ~ screenshot-4.png -->
+**1. 沉浸式写作**
 
-| 控制台                                           | Wiki 网站前台                                    |
-|--------------------------------------------------|--------------------------------------------------|
-| <img src="/images/screenshot-1.png" width=370 /> | <img src="/images/screenshot-2.png" width=370 /> |
-| <img src="/images/screenshot-3.png" width=370 /> | <img src="/images/screenshot-4.png" width=370 /> |
+//TODO: 添加图片
+
+**2. AI辅助写作**
+
+//TODO: 添加图片
+
+**3. 分享出去的页面**
+
+//TODO: 添加图片
+
+**4. Wiki 站点**
+
+//TODO: 添加图片
+
+**5. AI智能客服**
+
+//TODO: 添加图片
 
 ## 🔥 功能与特色
 
-- **AI 驱动智能化**：AI 辅助创作、基于 RAG 向量检索的 AI 问答与 AI 搜索（Qdrant + LangChain，兼容 OpenAI 接口的大模型服务商均可接入）。
-- **强大的富文本编辑能力**：Tiptap 3 编辑器，兼容 Markdown，支持表格、任务列表、目录、代码高亮、数学公式、图片等；local-first 自动保存，刷新、断网内容都不丢。
-- **文档分享与发布**：支持密码保护的分享链接；一键发布为 SEO 友好的公开站点（Nuxt SSR 渲染），博客、Wiki、图文日志直接对外呈现。
-- **媒体文件管理**：基于 S3 兼容对象存储（内置 RustFS），上传图片直链访问，换域名零配置。
-- **多格式导入导出**：支持 Markdown 等多种格式的内容导入与导出。
-- **开箱即用的私有化部署**：单 Docker 镜像 + 一条命令，自带 PostgreSQL / Redis / Qdrant / RustFS 全套依赖与数据持久化。
+## 核心功能
 
-## 🚀 上手指南
+> YokiMind 围绕「知识从哪来、怎么用、给谁看」组织功能：
+> 底层是 **AI 知识库**，上层是 **写作**、**AI 辅助**、**智能客服** 三种使用方式，
+> 对外是 **wiki 站点**。
 
-### 一键部署
+### ✍️ 沉浸式写作
 
-你需要一台装有 **Docker 20.x 以上版本**（含 Docker Compose 插件）的 Linux / macOS 服务器。
+专注、干净的编辑体验。所见即所得的编辑器，
+支持大纲导航、快捷键、专注模式，让你把注意力放在内容本身。
 
-```bash
-# 1. 获取项目（git clone 或下载 release 包均可）
-git clone <仓库地址> yokimind && cd yokimind
+### 🤖 AI 辅助写作
 
-# 2. 生成部署配置（全部参数都有默认值，可先不改）
-cp .env.example .env
+在写作过程中随时调用 AI——续写、改写、总结、翻译、生成大纲。
+AI 理解当前知识库上下文，产出与你的业务一致，而不是泛泛而谈。
 
-# 3. 启动（首次会自动构建应用镜像，需几分钟）
-docker compose up -d
-```
+### 💬 智能客服
 
-命令执行完毕后，浏览器打开 **http://localhost:60000**（Caddy 统一入口，可用 `HTTP_PORT` 修改），注册账号即可开始使用。
+把知识库变成能对外的问答入口。
+基于 RAG 检索与引用溯源，回答客户、售前与内部咨询，
+每条答案都可点击跳转到原文出处，可嵌入网站或独立部署。
 
-> 首次启动 `docker compose` 会自动构建 `yokimind:latest`（应用镜像）与 `yokimind-caddy:latest`（网关镜像），之后重启秒级完成。
->
-> 所有数据（数据库、上传文件、向量索引、队列）都存放在 Docker 命名卷中，容器升级、重建均不丢失。
+### 📖 Wiki 站点
 
-### 配置 AI 模型
+一键把空间或目录发布为公开文档站点。
+自动生成导航、目录与搜索，适合产品手册、帮助中心和技术博客。
 
-> YokiMind 由 AI 大模型驱动，在未配置大模型的情况下，AI 创作、AI 问答、AI 搜索等功能无法正常使用。
+### 🧠 AI 知识库
 
-登录后进入控制台的 AI 设置，配置任意 **OpenAI 兼容接口** 的服务商（填入 Base URL、API Key、模型名即可），聊天模型与向量 Embedding 模型支持分开配置。配置保存后 AI 功能即刻可用，后续修改同样即时生效。
+整个系统的大脑。导入文档后自动解析、分块、嵌入并建立索引，
+支持混合检索（向量 + 关键词 + 元数据过滤）与多模型接入。
+提供标准 **MCP 协议**，Claude、GPT 等智能体可直接调用。
 
-### 创建知识库
+## 🚀 快速开始
 
-「知识库」是一组文档的集合。创建知识库后，你可以在其中组织文档树、编辑内容、启用 AI 问答，并将知识库一键发布为公开网站。
+### 安装 YokiMind
 
-<!-- TODO: 创建知识库截图待补充，放入 images/createkb.png -->
-<p align="center">
-  <img src="/images/createkb.png" width="800" alt="创建知识库" />
-</p>
-
-### 💪 开始使用
-
-如果你顺利完成了以上步骤，那么恭喜你，属于你的 YokiMind 搭建成功，你可以：
-
-- 访问 **控制台** 来管理知识库、编辑文档、配置 AI 与分享发布
-- 访问 **Wiki 网站** 查看发布效果，体验 AI 问答与 AI 搜索
-
-## ⚙️ 环境变量
-
-复制 `.env.example` 为 `.env` 后按需修改，**全部参数均有默认值**，最小化配置即可启动：
-
-| 变量 | 默认值 | 说明 |
-| --- | --- | --- |
-| `HTTP_PORT` | `60000` | Caddy 对外入口端口（对外唯一端口，避开 80/443/808x 常见占用） |
-| `YOKIMIND_PORT` | `8080` | 应用直连调试端口（→ 容器 6001 API，日常走统一入口可留可关） |
-| `JWT_SECRET` | 空（回退公开默认值） | 分享/预览令牌的 HMAC 签名密钥，**公网部署务必设置为随机长字符串** |
-| `POSTGRES_PASSWORD` | `yokimind` | PostgreSQL 密码（仅首次建卷初始化时生效） |
-| `RUSTFS_ACCESS_KEY` | `yokimind` | 对象存储访问凭据，**生产环境务必修改** |
-| `RUSTFS_SECRET_KEY` | `yokimind-secret` | 对象存储访问凭据，**生产环境务必修改** |
-| `S3_PUBLIC_URL` | 不设 | 媒体对外地址，默认按 `X-Forwarded-*` 请求头自动派生；仅 CDN / 独立文件域名场景才需显式覆盖 |
-
-## 🔒 HTTPS 部署
-
-本方案对外仅暴露一个纯 HTTP 端口（`HTTP_PORT`，默认 60000），**不内置自动 HTTPS**。需要加密传输时，在前面的反向代理 / 云负载均衡上做 TLS 终结（nginx / Caddy / 云 SLB 均可），把 443 流量转发到本机 `HTTP_PORT` 端口即可。
-
-媒体文件 URL 由服务端按 `X-Forwarded-*` 请求头自动派生，与证书层无关，更换域名零配置。
-
-## 🧩 进阶部署
-
-已有 PostgreSQL / Redis / Qdrant / S3 的用户（少拉几个镜像），可以直接运行纯应用镜像：
+你需要一台装有 Docker（含 Docker Compose v2，`docker compose version` 可验证）的 Linux / macOS 机器，建议 2 核 CPU / 4GB 内存 / 10GB 磁盘起。
 
 ```bash
-docker build -t yokimind:latest .
-
-docker run -d -p 8080:6001 \
-  -e DATABASE_URL=postgres://用户:密码@主机:5432/库名 \
-  -e REDIS_URL=redis://主机:6379/2 \
-  -e QDRANT_URL=http://主机:6333 \
-  -e S3_ENDPOINT=http://主机:9000 \
-  -e S3_BUCKET=yokimind-media \
-  -e S3_ACCESS_KEY=... -e S3_SECRET_KEY=... \
-  yokimind:latest
+git clone <本仓库地址>
+cd yokimind/install
+./install.sh
 ```
 
-## 🏗️ 架构与目录
+脚本会交互确认对外端口（回车默认 60000），自动生成 `.env`（数据库密码、签名密钥等凭据全部随机生成，零手工配置），拉取镜像并启动全部服务，完成后在 `install/NOTES.md` 输出本次部署的访问地址与全部实际配置，浏览器打开即可注册使用。
 
-所有流量经 Caddy 按路径分流到单容器内的三个服务（单域名 + 路径区分，与生产反代同构）：
+也可以手工部署：把 `install/.env.example` 复制为 `.env` 按需修改，然后 `docker compose up -d --wait`，详见 [install/README.md](install/README.md)。
 
-| 路径 | 上游 | 说明 |
-| --- | --- | --- |
-| `/` | web SPA | Vue 3 编辑器控制台 |
-| `/api/*` | Hono API | 后端服务 |
-| `/w` `/b` `/_nuxt` | Nuxt SSR | 公开内容站（SEO 友好） |
-| `/media/*` | RustFS | S3 兼容对象存储（图片等媒体文件） |
+### 💬 遇到问题
 
-Monorepo 结构（pnpm workspace + TypeScript）：
+如在使用产品过程中遇到问题，可通过以下方式获取帮助：
+- 📘查阅官方文档：[常见问题](https://pandawiki.docs.baizhi.cloud/node/019b4952-4ed3-7514-ba57-c93a8ca13608)，更多内容请参考文档目录。
+- 🤖不想翻文档？试试 [AI 问答](https://pandawiki.docs.baizhi.cloud/node/0197160c-782c-74ad-a4b7-857dae148f84)，快速获取答案。
+- 🤝加入社区：扫码加入下方企业微信群，与更多用户及官方人员交流经验、获得帮助。
 
-| 目录 | 说明 | 技术栈 |
-| --- | --- | --- |
-| `apps/web` | 编辑器控制台（SPA） | Vue 3 · Arco Design Vue · Tailwind CSS 4 · Vite 8 · Tiptap 3 |
-| `apps/server` | 后端服务 | Hono · Drizzle ORM · PostgreSQL 17 · Redis 7 / BullMQ · Qdrant · LangChain |
-| `apps/pages` | 公开内容站（SSR） | Nuxt 4 · Tailwind CSS 4 |
-
-## 📚 文档索引
-
-深入设计细节可阅读仓库内文档：
-
-- [Docker 部署与镜像发布方案](docs/产品设计/Docker部署与镜像发布方案.md)
-- [服务地址与端口规划](docs/产品设计/服务地址与端口规划.md)
-- [RAG 智能问答功能设计](docs/产品设计/RAG智能问答功能设计.md)
-- [分享功能设计](docs/产品设计/分享功能设计.md)
-- [媒体文件存储设计](docs/产品设计/媒体文件存储设计.md)
-
-## 🛠️ 本地开发
-
-想在本地跑起开发环境？依赖容器一键启动（`pnpm docker:up`），应用进程宿主机直跑，详见 [docs/测试环境启动.md](docs/测试环境启动.md)。
-
-## 🤝 贡献
-
-欢迎提交 Pull Request 或创建 Issue 来帮助改进项目。
-
-## 💬 社区交流
+## 社区交流
 
 欢迎加入我们的微信群进行交流。
 
-<!-- TODO: 微信群二维码待补充，放入 images/wechat.png -->
-<p align="center">
-  <img src="/images/wechat.png" width="300" alt="微信交流群" />
-</p>
+// TODO:微信群图片
 
 ## 📝 许可证
 
