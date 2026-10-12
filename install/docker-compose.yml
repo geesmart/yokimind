@@ -1,0 +1,164 @@
+# compose 项目名：容器/网络命名前缀（如容器 yokimind-app-1、网络 yokimind_default）。
+# 显式指定而不取目录名，避免 git clone 目录不叫 yokimind 时容器命名混乱
+name: yokimind
+
+# YokiMind · Docker Compose 部署编排（客户版）
+#
+# 单镜像全栈：一个应用容器（caddy 统一入口 + Hono API + web 静态 + Nuxt 公开站）
+# + PostgreSQL + Redis + Qdrant（向量检索）+ RustFS（S3 兼容对象存储）
+#
+# 使用方式（与本文件同目录）：
+#   cp .env.example .env      # 配置模板，全部有默认值，按需修改
+#   docker compose up -d      # 一键启动，数据库迁移自动执行
+#   浏览器打开 http://localhost:60000
+#
+# 更新版本：./update.sh（拉取新镜像并重建应用容器，数据不丢）
+# 自定义编排：同目录创建 docker-compose.override.yml 即可叠加修改（改端口/加卷等）
+#
+# 容器内布局（对外仅暴露一个 HTTP 端口）：
+#   app 容器：60000 = caddy 统一入口，按路径分流到同容器三个服务
+#     /            → 6000（web SPA 静态）
+#     /api/*       → 6001（Hono API）
+#     /w /b /_nuxt → 6002（Nuxt SSR 公开站）
+#     /media/*     → rustfs:9000（图片等媒体文件）
+#   HTTPS：在前置反代/云负载均衡做 TLS 终结，把 443 流量转发到 HTTP_PORT 即可
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-yokimind}
+      POSTGRES_DB: yokimind
+    volumes:
+      # 数据库数据持久化（升级/重建容器不丢数据）
+      - yokimind-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [ 'CMD-SHELL', 'pg_isready -U postgres' ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # AOF 持久化：任务队列（含延迟重试任务）容器重启不丢
+    command: [ 'redis-server', '--appendonly', 'yes' ]
+    volumes:
+      - yokimind-redisdata:/data
+    healthcheck:
+      test: [ 'CMD', 'redis-cli', 'ping' ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  qdrant:
+    # 锁定版本：latest 会随上游漂移，向量存储格式变更可能导致旧卷无法直接升级
+    image: qdrant/qdrant:v1.19.1
+    restart: unless-stopped
+    volumes:
+      # 向量数据持久化（升级/重建容器不丢 AI 知识库索引）
+      - yokimind-qdrantdata:/qdrant/storage
+    healthcheck:
+      # qdrant 镜像（debian slim）不含 curl/wget，用 bash 的 /dev/tcp 探测端口
+      # 端口仅容器网络内可达（不映射宿主），应用走 http://qdrant:6333
+      test: [ 'CMD-SHELL', 'bash -c ":> /dev/tcp/127.0.0.1/6333" || exit 1' ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  rustfs:
+    # RustFS：S3 兼容对象存储（MinIO 的 Rust 替代品），承载用户上传的图片等媒体文件
+    image: rustfs/rustfs:1.0.0
+    restart: unless-stopped
+    environment:
+      # 访问凭据：与应用 S3_ACCESS_KEY / S3_SECRET_KEY 对齐（生产环境务必改默认值）
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:-yokimind}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:-yokimind-secret}
+      RUSTFS_VOLUMES: /data
+      # 内置 Web 管理控制台（容器 :9001）：浏览/删除对象、查看桶策略，登录凭据同上 AK/SK
+      RUSTFS_CONSOLE_ENABLE: 'true'
+      RUSTFS_CONSOLE_ADDRESS: '0.0.0.0:9001'
+    volumes:
+      # 对象数据持久化（升级/重建容器不丢上传文件）
+      - yokimind-rustfsdata:/data
+    ports:
+      # 控制台只绑宿主 loopback：公网不可达，不破坏「对外仅 HTTP_PORT」约定；
+      # 需要远程查看时走 SSH 隧道：ssh -L 6013:127.0.0.1:9001 <user@host>
+      # 然后本机浏览器打开 http://localhost:6013/rustfs/console/
+      - '127.0.0.1:9001:9001'
+    healthcheck:
+      test: [ 'CMD-SHELL', 'wget -qO- http://127.0.0.1:9000/health/ready || exit 1' ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  app:
+    # 单镜像单容器全栈（见文件头「容器内布局」）；镜像从 Docker Hub 拉取，
+    # 离线部署或私有 registry 场景在 .env 里改 YOKIMIND_IMAGE
+    image: ${YOKIMIND_IMAGE:-geesmart/yokimind:v1.0.0}
+    restart: unless-stopped
+    # init: true → Docker 内置 tini 作为 PID 1：转发停止信号、回收僵尸进程；
+    # 配合容器内守护脚本，任一子进程崩溃即整容器重启自愈
+    init: true
+    environment:
+      # 以下为容器内固定端口布局，与对外入口的分流配置对应，无需修改
+      PORT: 6001
+      WEB_STATIC_PORT: 6000
+      # 唯一必需外部配置：指向同网络的 postgres 容器
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-yokimind}@postgres:5432/yokimind
+      # 任务队列（连接同网络 redis 容器）
+      REDIS_URL: redis://redis:6379/2
+      # AI 向量检索（连接同网络 qdrant 容器）
+      QDRANT_URL: http://qdrant:6333
+      # 媒体存储（RustFS/S3 兼容）：默认连同网络 rustfs 容器；对外 URL 恒为相对路径
+      # /media/{bucket}/{key}，浏览器按当前访问地址解析（换域名零配置）。
+      # 四项均可在 .env 覆盖：外接已有 S3 兼容存储（MinIO/云 S3）时设 S3_ENDPOINT +
+      # S3_BUCKET + S3_ACCESS_KEY + S3_SECRET_KEY（须成对）；凭据未单独覆盖时
+      # 回退 RUSTFS_*（与内置 rustfs 启动凭据对齐，改凭据只需改 RUSTFS_* 一处）
+      S3_ENDPOINT: ${S3_ENDPOINT:-http://rustfs:9000}
+      S3_BUCKET: ${S3_BUCKET:-yokimind-media}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-${RUSTFS_ACCESS_KEY:-yokimind}}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-${RUSTFS_SECRET_KEY:-yokimind-secret}}
+      # 分享/预览令牌的 HMAC 签名密钥（登录态 token 存数据库，与此无关）；
+      # 空值时回退代码内公开默认值（可被伪造令牌），公网部署务必在 .env 设置随机长字符串
+      JWT_SECRET: ${JWT_SECRET:-}
+    ports:
+      # 对外唯一入口（默认 60000 避开宿主常见 80/443/808x 占用，可用 HTTP_PORT 覆盖）
+      - '${HTTP_PORT:-60000}:60000'
+    volumes:
+      # caddy 内部状态持久化（未来启用自动 HTTPS 时证书容器重建不重申请）
+      - yokimind-caddydata:/data
+      - yokimind-caddyconfig:/config
+    healthcheck:
+      # 探统一入口全链路（入口 → API → 数据库/迁移/后台任务）：
+      # 任一环节未就绪都不 healthy，与「对外可用」的验收语义一致；
+      # start_period 覆盖首次启动的建表 + 桶初始化耗时
+      test: [ 'CMD', 'wget', '-q', '--spider', 'http://127.0.0.1:60000/api/v1/health' ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      rustfs:
+        condition: service_healthy
+
+volumes:
+  yokimind-pgdata:
+    name: yokimind-pgdata
+  yokimind-rustfsdata:
+    name: yokimind-rustfsdata
+  yokimind-redisdata:
+    name: yokimind-redisdata
+  yokimind-qdrantdata:
+    name: yokimind-qdrantdata
+  yokimind-caddydata:
+    name: yokimind-caddydata
+  yokimind-caddyconfig:
+    name: yokimind-caddyconfig
