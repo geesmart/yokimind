@@ -1,0 +1,31 @@
+# ============================================================================
+# YokiMind 冒烟测试专用 compose 覆盖文件（bin/2_test-docker-img.mjs 使用）
+#
+# 用法：docker compose -f docker-compose.yml -f docker-compose.smoke.yml -p yoki-smoke up -d
+#
+# 为什么需要这个文件（2026-10-12 发现）：
+#   根 docker-compose.yml 的数据卷用显式 name:（yokimind-pgdata 等）——这是给
+#   「单机唯一部署」设计的：dev 栈与生产部署共用同一批卷。冒烟测试如果直接用根
+#   compose，会把这些【真实数据卷】挂给测试容器：
+#   - 轻则测试数据污染 dev 库（迁移记录、RAG 队列恢复等写入）
+#   - 重则 dev 栈同时在线时两个 postgres 并发挂同一数据目录（postmaster.pid 冲突，
+#     有损坏风险）
+# 本文件把全部卷重定向到 yoki-smoke-* 独立卷：冒烟完全隔离，测完可随 down -v 安全删除。
+#
+# 注意：compose 顶层 volumes 的 name: 是标量字段，覆盖文件直接替换生效；
+#       服务里的卷引用写的是卷【键名】（如 yokimind-rustfsdata:/data），无需改动。
+# ============================================================================
+
+volumes:
+  yokimind-pgdata:
+    name: yoki-smoke-pgdata
+  yokimind-rustfsdata:
+    name: yoki-smoke-rustfsdata
+  yokimind-redisdata:
+    name: yoki-smoke-redisdata
+  yokimind-qdrantdata:
+    name: yoki-smoke-qdrantdata
+  yokimind-caddydata:
+    name: yoki-smoke-caddydata
+  yokimind-caddyconfig:
+    name: yoki-smoke-caddyconfig

@@ -16,7 +16,8 @@
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "isolatedModules": true,
-    "rootDir": "./src",
+    // 不设 rootDir：本包 noEmit + declaration:false，rootDir 仅在产出文件时有意义；
+    // 保留反而会把 include 进来的根级配置文件（vite.config.ts）判成 TS6059
     "baseUrl": ".",
     "paths": {
       "@/*": [
@@ -27,6 +28,10 @@
   "include": [
     "src/**/*.ts",
     "src/**/*.vue",
-    "src/**/*.tsx"
+    "src/**/*.tsx",
+    // 根级配置文件也纳入本配置（moduleResolution: bundler）：
+    // 否则 IDE 端 WebStorm 对这种不在任何 include 里的文件会用默认 node10 解析，
+    // 而 vite 8 类型只经 exports 暴露（顶层无 types 字段），node10 下报 TS2307
+    "vite.config.ts"
   ]
 }
