@@ -1,6 +1,6 @@
 {
   "name": "@yokimind/pages",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "YokiMind 公开内容站（Nuxt SSR，面向 SEO：blog / wiki / 图文日志发布）",
   "type": "module",
