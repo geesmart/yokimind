@@ -4,7 +4,7 @@
     顶部导航（logo + 登录/注册 或 进入控制台）
     → Hero 区（玻璃 logo + 主副标语 + 行动按钮）
     → 特性区（三张能力卡片）
-    → 页脚（品牌素材入口 + 版权）
+    → 页底（GitHub / Gitee 仓库入口）→ 页脚（品牌素材入口 + 版权）
   -->
   <div class="min-h-screen w-full bg-background flex flex-col">
     <!-- ==================== 顶部导航栏：吸顶 + 毛玻璃 ==================== -->
@@ -54,11 +54,12 @@
       <!-- Hero 区：居中展示 logo、标语与行动按钮 -->
       <section class="mx-auto max-w-5xl px-4 pt-20 pb-16 flex flex-col items-center text-center">
         <!--
-          Hero 品牌标识：与顶部导航同款的「应用图标 + YOKi + 文档徽标」组合，整体放大展示
+          Hero 品牌标识：应用图标 + 文字组合 logo，版本标签挂在 logo 右上角
           （原彩色玻璃大 logo 暂时隐藏，需要时恢复 <LogoGlass :size="72" />）
         -->
-        <div class="mb-8 flex items-center gap-4">
+        <div class="relative mb-8 flex">
           <img src="/logo.png" alt="YokiMind" class="w-100" />
+          <VersionTag class="h-6" />
         </div>
 
         <!-- 主标语：渐进字号，小屏 3xl / 大屏 5xl -->
@@ -154,12 +155,28 @@
       <!--      </section>-->
     </main>
 
+    <!-- ==================== 页脚分隔线上方：开源仓库入口 ==================== -->
+    <!-- main 已 flex-1 撑满，此块自然贴到页底、页脚分隔线之上 -->
+    <div class="flex items-center justify-center gap-3 pb-6">
+      <a
+        v-for="repo in repos"
+        :key="repo.name"
+        :href="repo.url"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+      >
+        <component :is="repo.icon" class="size-3.5" />
+        {{ repo.name }}
+      </a>
+    </div>
+
     <!-- ==================== 页脚：品牌素材入口 + 版权信息 ==================== -->
     <footer class="w-full border-t border-border/60 py-6">
       <div
         class="mx-auto max-w-5xl px-4 flex items-center justify-center gap-4 text-xs text-muted-foreground"
       >
-        <span>© 2026 YOKi 文档</span>
+        <span>© 2026 YokiMind</span>
         <span class="text-border">|</span>
         <RouterLink
           to="/brand"
@@ -176,10 +193,22 @@
 <script lang="ts" setup>
 import { RouterLink } from 'vue-router'
 import { computed } from 'vue'
-import { Code2, LayoutDashboard, LogIn, Palette, Sparkles, UserPlus, Users } from '@lucide/vue'
+import { LayoutDashboard, Palette, Sparkles } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
+import VersionTag from '@/components/version-tag.vue'
 import LogoWordmark from '@/components/brand-logo/LogoWordmark.vue'
+import BrandGithub from '@/icons/BrandGithub.vue'
+import BrandGitee from '@/icons/BrandGitee.vue'
 import { isLoggedIn } from '@/utils/token'
+
+/**
+ * 开源仓库入口：GitHub / Gitee（外链新开页）
+ * 图标为 simple-icons 官方品牌路径（本地 BrandGithub/BrandGitee 组件）。
+ */
+const repos = [
+  { name: 'GitHub', url: 'https://github.com/geesmart/yokimind', icon: BrandGithub },
+  { name: 'Gitee', url: 'https://gitee.com/geesmart/yokimind', icon: BrandGitee },
+]
 
 /**
  * 登录态：响应式派生自 isLoggedIn()

@@ -1,1 +1,0 @@
-ALTER TABLE "wiki_shares" ADD COLUMN "nav_buttons" jsonb;

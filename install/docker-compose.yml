@@ -95,8 +95,8 @@ services:
 
   app:
     # 单镜像单容器全栈（见文件头「容器内布局」）；镜像从 Docker Hub 拉取，
-    # 离线部署或私有 registry 场景在 .env 里改 YOKIMIND_IMAGE
-    image: ${YOKIMIND_IMAGE:-geesmart/yokimind:v1.0.0}
+    # 默认 latest，./update.sh 拉取即更新；离线部署或私有 registry 场景在 .env 里改 YOKIMIND_IMAGE
+    image: ${YOKIMIND_IMAGE:-geesmart/yokimind:latest}
     restart: unless-stopped
     # init: true → Docker 内置 tini 作为 PID 1：转发停止信号、回收僵尸进程；
     # 配合容器内守护脚本，任一子进程崩溃即整容器重启自愈

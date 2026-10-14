@@ -124,11 +124,24 @@ function printLocalDomainUrls(): Plugin {
 }
 
 /**
- * Vite 配置文件
+ * 根 package.json 的 version：发布流水线（bin/ Docker 三步）与本产物 tar 命名的版本真源。
+ * 构建期经 define 注入为全局常量 __APP_VERSION__，落地页等处直接展示当前版本。
+ */
+const rootPkgVersion = (
+  JSON.parse(readFileSync(resolve(import.meta.dirname, '../../package.json'), 'utf-8')) as {
+    version: string
+  }
+).version
+
+/** Vite 配置文件
  * 为 Vue3 + TypeScript 前端应用提供构建与开发服务配置
  */
 export default defineConfig(() => {
   return {
+    // 版本号注入：dev 与 build 均生效，前端以 __APP_VERSION__ 常量直接引用
+    define: {
+      __APP_VERSION__: JSON.stringify(rootPkgVersion),
+    },
     // 注册 Vue 单文件组件编译插件（+ 品牌资源单一真源伺服 + 本地方名地址提示）
     plugins: [vue(), tailwindcss(), brandAssetsPlugin(), printLocalDomainUrls()],
     resolve: {

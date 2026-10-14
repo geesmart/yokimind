@@ -25,22 +25,9 @@
           </Tooltip>
         </TooltipProvider>
 
-        <!-- 面包屑导航：知识库名 > 父级路径 > 当前文档 -->
-        <Breadcrumb v-if="wikiName || docTitle" class="min-w-0">
+        <!-- 面包屑导航：父级路径 > 当前文档（不展示知识库名层） -->
+        <Breadcrumb v-if="docTitle || (docPath && docPath.length > 0)" class="min-w-0">
           <BreadcrumbList class="flex-nowrap overflow-x-auto">
-            <!-- 知识库名称（链接，点击返回知识库首页） -->
-            <BreadcrumbItem>
-              <BreadcrumbLink
-                v-if="wikiName"
-                href="#"
-                class="truncate max-w-[120px]"
-                @click.prevent="goToWikiRoot"
-                >{{ wikiName }}</BreadcrumbLink
-              >
-              <span v-else class="text-muted-foreground/70 truncate">知识库</span>
-            </BreadcrumbItem>
-            <!-- 知识库名与文档之间的分隔符 -->
-            <BreadcrumbSeparator v-if="docTitle || (docPath && docPath.length > 0)" />
             <!-- 父级路径节点（可点击跳转，显示 emoji 图标） -->
             <template v-for="(node, index) in docPath || []" :key="node.id">
               <BreadcrumbItem>
@@ -343,6 +330,39 @@
           <Share2 :size="14" />
           分享
         </Button>
+        <!-- 导出按钮（最右侧，三个点图标）：点击展开 dropdown，提供两种导出形态 ——
+             Markdown 压缩包（正文 + assets/ 图片资源）/ Markdown 文件（仅正文，图片保留原链接）。
+             正文取当前挂载编辑器的实时内容（含未保存改动）；guest 访客只读态同样可导出；
+             回收站文档隐藏（与分享同语义），未选中文档时隐藏（无内容可导出） -->
+        <DropdownMenu v-if="!inTrash && docId">
+          <DropdownMenuTrigger as-child>
+            <Button
+              variant="ghost"
+              size="icon"
+              class="h-8 w-8 text-muted-foreground hover:text-foreground"
+              aria-label="导出文档"
+              title="导出文档"
+            >
+              <MoreHorizontal :size="16" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" class="w-60">
+            <DropdownMenuItem class="cursor-pointer gap-2 py-2.5" @click="handleExportMarkdownZip">
+              <FileArchive :size="15" class="shrink-0 text-muted-foreground" />
+              <div class="flex flex-col gap-0.5">
+                <span class="text-sm leading-none">导出 Markdown 压缩包</span>
+                <span class="text-xs text-muted-foreground">正文 + 图片资源（assets/ 目录）</span>
+              </div>
+            </DropdownMenuItem>
+            <DropdownMenuItem class="cursor-pointer gap-2 py-2.5" @click="handleExportMarkdownFile">
+              <FileDown :size="15" class="shrink-0 text-muted-foreground" />
+              <div class="flex flex-col gap-0.5">
+                <span class="text-sm leading-none">导出 Markdown 文件</span>
+                <span class="text-xs text-muted-foreground">仅正文，图片保留原始链接</span>
+              </div>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <!-- guest 访客态：顶栏右侧「登录」「注册」双入口（迁移自原 share-guest 悬浮按钮），
              访客态必然未登录，登录后回到该链接即进入 owner 视图；
              登录用描边胶囊（次级动作），注册用主色胶囊（引导新用户注册） -->
@@ -511,6 +531,7 @@ import { Separator } from '@/components/ui/separator'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -561,9 +582,12 @@ import {
   Book,
   ExternalLink,
   Undo2,
+  FileArchive,
+  FileDown,
 } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import { copyTextToClipboard } from '@/lib/utils'
+import { exportMarkdownZip, exportMarkdownFile } from '@/utils/export-markdown'
 import RagStatusBadge from '@/components/wiki/rag-status-badge.vue'
 import { useWikiDocStore } from '@/stores/wiki-doc'
 
@@ -613,8 +637,6 @@ const props = withDefaults(
     docId?: string
     /** 文档正文加载中 */
     contentLoading?: boolean
-    /** 知识库名称（面包屑根） */
-    wikiName?: string
     /** 父级路径数组（从根到直接父节点） */
     docPath?: BreadcrumbPathItem[]
     /** 当前文档标题（面包屑末级） */
@@ -667,15 +689,6 @@ const wikiId = computed(() => {
   const route = router.currentRoute.value
   return ((route.params.wikiId as string) || '').toLowerCase()
 })
-
-/**
- * 跳转到知识库根页面（面包屑点击知识库名称时触发）
- */
-function goToWikiRoot() {
-  if (wikiId.value) {
-    router.push(`/wiki/${wikiId.value}`)
-  }
-}
 
 /**
  * 跳转到指定文档节点（面包屑点击父级路径时触发）
@@ -1230,5 +1243,47 @@ async function copyMarkdownFromEditor() {
   } else {
     toast.error('复制失败，请手动复制')
   }
+}
+
+/**
+ * 顶栏「导出」dropdown：导出当前文档为 Markdown 压缩包
+ *
+ * - 正文从 NotionEditor 暴露的 getMarkdown() 取实时内容（含未保存的 local-first 改动，
+ *   所见即所得）；图片等资源下载后打包进 assets/，引用同步改写为相对路径；
+ * - 部分资源下载失败不算导出失败：zip 照常产出，失败项保留原链接并 toast 警告。
+ */
+async function handleExportMarkdownZip() {
+  const markdown = notionEditorRef.value?.getMarkdown() ?? ''
+  try {
+    const result = await exportMarkdownZip(props.docTitle ?? '', markdown)
+    if (!result) {
+      toast.error('当前文档暂无内容，无法导出')
+      return
+    }
+    if (result.failedAssetCount > 0) {
+      toast.warning(`已导出 ${result.fileName}（${result.failedAssetCount} 个资源下载失败，已保留原链接）`)
+    } else if (result.assetCount > 0) {
+      toast.success(`已导出 ${result.fileName}（含 ${result.assetCount} 个资源）`)
+    } else {
+      toast.success(`已导出 ${result.fileName}`)
+    }
+  } catch (err) {
+    console.error('[export-markdown] 导出失败', err)
+    toast.error('导出失败，请稍后重试')
+  }
+}
+
+/**
+ * 顶栏「导出」dropdown：导出当前文档为单个 Markdown 文件
+ * 仅正文 .md（首行补 # 标题），图片保留原始链接不做下载改写，直接下载不打包
+ */
+function handleExportMarkdownFile() {
+  const markdown = notionEditorRef.value?.getMarkdown() ?? ''
+  const result = exportMarkdownFile(props.docTitle ?? '', markdown)
+  if (!result) {
+    toast.error('当前文档暂无内容，无法导出')
+    return
+  }
+  toast.success(`已导出 ${result.fileName}`)
 }
 </script>

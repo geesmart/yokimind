@@ -7,10 +7,13 @@
     class="flex items-center justify-between h-14 px-4 xl:px-6 border-b border-border bg-background gap-4 shrink-0"
     role="banner"
   >
-    <!-- 左侧：logo -->
-    <div class="flex-1 shrink-0 flex items-center gap-1">
-      <a href="/"><img src="/logo-icon.png" alt="YOKI文档" class="h-10" /></a>
-      <a href="/"><img src="/logo-text.png" alt="YOKI文档" class="h-6" /></a>
+    <!-- 左侧：logo + 版本标签 -->
+    <div class="flex-1 shrink-0 flex items-center gap-1 ">
+        <a href="/" class="flex items-center gap-1.5">
+          <img src="/logo-icon.png" alt="YokiMind" class="h-10" />
+          <img src="/logo-text.png" alt="YokiMind" class="h-5" />
+        </a>
+        <VersionTag class="hidden sm:inline-flex right-[10]" />
     </div>
 
     <!-- 中间：品牌标识 -->
@@ -25,6 +28,7 @@
 
 <script lang="ts" setup>
 import UserMenu from '@/components/user-menu.vue'
+import VersionTag from '@/components/version-tag.vue'
 </script>
 
 <style scoped></style>

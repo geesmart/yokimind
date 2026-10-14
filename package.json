@@ -1,6 +1,6 @@
 {
   "name": "yokimind-monorepo",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "private": true,
   "description": "YokiMind - 把你的知识记录，做团队的企业大脑",
   "scripts": {
@@ -28,6 +28,7 @@
     "pnpm": ">=9"
   },
   "dependencies": {
+    "@clack/prompts": "^1.8.1",
     "dayjs": "^1.11.23"
   }
 }

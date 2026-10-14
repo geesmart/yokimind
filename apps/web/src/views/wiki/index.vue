@@ -64,7 +64,6 @@
           :content="currentContent"
           :doc-id="docId"
           :content-loading="contentLoading"
-          :wiki-name="guestMode ? (shareMeta?.wikiName ?? '') : wikiName"
           :doc-path="guestMode ? guestDocPath : docPath"
           :doc-title="guestMode ? guestDocTitle : activeDocTitle"
           :icon="guestMode ? guestDocIcon : activeDocIcon"
@@ -101,14 +100,15 @@
       </template>
     </template>
 
-    <!-- 无 docId：空库兜底空态（正常情况树就绪后会自动 replace 到第一篇文档，不会停留在此） -->
+    <!-- 无 docId：空库兜底空态（正常情况树就绪后会自动创建/打开第一篇文档，不会停留在此；
+         自动创建失败（接口异常）时停留此空态，文案引导手动创建兜底） -->
     <ResizablePanel v-else :min-size="40" :default-size="80">
       <div class="h-full flex flex-col items-center justify-center gap-2 text-muted-foreground">
         <FileText :size="32" class="text-muted-foreground/50" />
         <p class="text-sm">暂无文档</p>
         <!-- 空态文案按模式区分：owner 提示创建，guest 提示无可浏览内容 -->
         <p v-if="!guestMode" class="text-xs text-muted-foreground/70">
-          点击左侧「+」按钮创建第一篇文档
+          创建文档失败，点击左侧「+」按钮重试
         </p>
         <p v-else class="text-xs text-muted-foreground/70">该知识库暂无可浏览的文档</p>
       </div>
@@ -205,11 +205,6 @@ const wikiDocStore = useWikiDocStore()
  * 知识库详情（完整 WikiItem），LayoutLeft 顶栏 + 编辑弹窗使用
  */
 const wikiData = ref<WikiItem | null>(null)
-
-/**
- * 知识库名称（顶栏/面包屑用），从 wikiData 派生
- */
-const wikiName = computed(() => wikiData.value?.name ?? '')
 
 /**
  * 当前文档正文（Tiptap JSON），null 表示未加载或空
@@ -722,7 +717,7 @@ async function handleGuestDocChange(id: string) {
 /**
  * wikiId 变化：拉取知识库详情 + 文档树
  * 树就绪后 URL 无 docId：自动 replace 到第一篇可见文档（知识库首页已移除）；
- * 空库（树中无可选文档）则停留当前 URL，显示「暂无文档」空态
+ * 空库（树加载成功且无任何文档）则自动创建第一篇文档并打开（创建失败停留「暂无文档」空态）
  */
 watch(
   wikiId,
@@ -812,12 +807,31 @@ watch(
     if (docId.value) {
       loadDocContent(docId.value)
     } else {
-      // 统一节点模型下每个节点均有 documentId，第一个可见节点即第一篇文档；空树为 undefined → 停留显示空态
+      // 统一节点模型下每个节点均有 documentId，第一个可见节点即第一篇文档
       const first = wikiDocStore.sortedDisplayDocs[0]
       if (first) {
         // 走到这里 URL 必为瞬态的 /wiki/{wikiId}（无 docId、无 mode 后缀），固定补 /edit
         // （面包屑点知识库名等回根操作会重置为编辑模式）
         router.replace(`/wiki/${id}/${first.id}/edit`)
+      } else if (wikiDocStore.currentWikiId === id) {
+        // 空库：自动创建第一篇文档并进入编辑态（新库开箱即写，无需手动点「+」）
+        // currentWikiId === id 区分「真空库」与「树加载失败被清空」（loadDocs 失败时不记录
+        // currentWikiId），避免网络抖动时把加载失败误判为空库而重复建文档；
+        // 创建失败仅提示，停留「暂无文档」空态由用户手动创建兜底
+        try {
+          const node = await wikiDocStore.createDoc(id)
+          // 创建期间已切换知识库 → 丢弃跳转（新库的 watch 已自行编排）
+          if (wikiId.value === id) {
+            router.replace(`/wiki/${id}/${node.id}/edit`)
+          }
+        } catch (error) {
+          if (error instanceof ApiError) {
+            toast.error(error.message)
+          } else {
+            console.error('[wiki/index] 自动创建首篇文档失败:', error)
+            toast.error('创建文档失败，请稍后重试')
+          }
+        }
       }
     }
   },

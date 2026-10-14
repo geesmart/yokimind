@@ -40,7 +40,7 @@ cd yokimind/install
 | `POSTGRES_PASSWORD` | `yokimind` | 数据库密码，**仅首次建卷时生效**，已有数据后修改需进库改 |
 | `RUSTFS_ACCESS_KEY` / `RUSTFS_SECRET_KEY` | `yokimind` / `yokimind-secret` | 对象存储凭据，生产环境务必修改 |
 | `S3_ENDPOINT` / `S3_BUCKET` / `S3_ACCESS_KEY` / `S3_SECRET_KEY` | 空（回退内置 RustFS） | 外接 S3 兼容存储（MinIO/云 S3）时设置，应用直连外部存储；凭据须成对，改内置 RustFS 凭据直接改 `RUSTFS_*` |
-| `YOKIMIND_IMAGE` | `geesmart/yokimind:v1.0.0` | 应用镜像地址，离线导入/私有 registry 时改成实际 tag |
+| `YOKIMIND_IMAGE` | `geesmart/yokimind:latest` | 应用镜像地址，离线导入/私有 registry 时改成实际 tag |
 
 ## 日常操作
 
@@ -64,10 +64,12 @@ docker exec $(docker compose ps -q postgres) \
 
 ## 常见问题
 
-**如何升级？** 新版本发布后，把 `.env` 的 `YOKIMIND_IMAGE` 改指向新镜像 tag（默认 tag 有更新则不用改），然后执行：
+**如何升级？** 默认追踪 `latest` tag，新版本发布后直接执行即可，无需改配置：
 
 ```sh
 ./update.sh    # 或重跑 ./install.sh，两者等价
 ```
+
+如需锁定特定版本（回滚/离线部署），把 `.env` 的 `YOKIMIND_IMAGE` 改指向具体 tag 再执行。
 
 数据全部保留在命名卷中，应用启动时自动执行数据库迁移（幂等）。
