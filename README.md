@@ -1,7 +1,3 @@
-# 欢迎使用YokiMind
-
-# 什么是YokiMind ?
-
 <img src="assets/01m4w3x6at45wkerak5qcqq20t.png" width="250" style="width: 250px">
 
 YokiMind 是一个开源的AI知识协作创作工具，面向初创公司、企业和智能体的AI知识库。
