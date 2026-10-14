@@ -1,1 +1,0 @@
-ALTER TABLE "wiki_nodes" ADD COLUMN "doc_format" text DEFAULT 'md' NOT NULL;

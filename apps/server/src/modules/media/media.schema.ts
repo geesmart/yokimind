@@ -3,8 +3,23 @@
  *
  * 说明：
  * - 上传接口走 multipart/form-data，文件字段不做 Zod 校验（Hono parseBody 返回 File 后由 service 层校验）
- * - 本文件仅定义上传成功响应的 DTO 类型，供 controller 与 service 共享
+ * - 转存接口走 JSON body，用 Zod 校验（vJson 中间件消费）
+ * - 本文件定义请求校验 Schema 与响应 DTO 类型，供 controller 与 service 共享
  */
+import { z } from 'zod'
+
+/**
+ * 外链图片转存请求 Schema
+ * - urls：待转存的外链图片 URL 列表（去重由 service 处理），单次上限 50 张防滥用
+ * - wikiId / documentId：可选归属绑定（与 upload 接口语义一致，绑定 documentId 即 attached）
+ */
+export const TransferRemoteSchema = z.object({
+  urls: z.array(z.string().min(1).max(2048)).min(1).max(50),
+  wikiId: z.string().min(1).max(64).optional(),
+  documentId: z.string().min(1).max(64).optional(),
+})
+
+export type TransferRemoteParams = z.infer<typeof TransferRemoteSchema>
 
 /**
  * 上传图片成功响应

@@ -199,3 +199,186 @@ function guessMimeFromName(name: string): string {
       return ''
   }
 }
+
+// ============ 外链图片转存（Markdown 导入场景） ============
+
+/**
+ * 转存单张外链图的结果（逐条返回，允许部分成功）
+ */
+export interface TransferRemoteItem {
+  /** 原始外链 URL（请求方用于映射改写正文） */
+  sourceUrl: string
+  /** 转存成功后的相对 URL（/media/{bucket}/{key}）；失败时为 null */
+  url: string | null
+  /** 失败原因（人类可读，用于前端聚合提示）；成功时为 null */
+  error: string | null
+}
+
+/** 单张外链图下载超时（秒）：慢速图床不应拖死整个导入流程 */
+const TRANSFER_TIMEOUT_MS = 15_000
+
+/**
+ * 下载一张外链图片并返回（buffer, mimeType）
+ *
+ * 校验链：协议白名单 → Content-Type / URL 扩展名推断 → 实际字节数上限。
+ * 安全说明：本项目为单机自部署形态（服务跑在用户自己的机器/内网），
+ * 不做私网地址拦截 —— 用户从内网图床（NAS / 内网 Wiki）导入属于合法场景，
+ * 防护收敛在协议白名单 + 类型白名单 + 5MB 上限。
+ */
+async function downloadRemoteImage(sourceUrl: string): Promise<{ buffer: Buffer; mimeType: string }> {
+  // 协议白名单：只允许 http/https（禁 file:/data:/ftp: 等）
+  let parsed: URL
+  try {
+    parsed = new URL(sourceUrl)
+  } catch {
+    throw new Error('URL 格式非法')
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error('仅支持 http/https 链接')
+  }
+
+  // 带超时下载（AbortSignal.timeout 到点自动中断请求）
+  let resp: Response
+  try {
+    resp = await fetch(sourceUrl, {
+      redirect: 'follow',
+      signal: AbortSignal.timeout(TRANSFER_TIMEOUT_MS),
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; yokimind-media-transfer)' },
+    })
+  } catch {
+    throw new Error('下载失败或超时')
+  }
+  if (!resp.ok) {
+    throw new Error(`下载失败（HTTP ${resp.status}）`)
+  }
+
+  // MIME 判定：响应头优先；缺失或泛型（application/octet-stream）时按 URL 扩展名兜底
+  let mimeType = resp.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() ?? ''
+  if (!mimeType || !ALLOWED_MIME_TYPES.has(mimeType)) {
+    mimeType = guessMimeFromName(parsed.pathname)
+  }
+  if (!mimeType || !ALLOWED_MIME_TYPES.has(mimeType)) {
+    throw new Error('不支持的图片类型')
+  }
+
+  // 大小上限：content-length 预检 + 实际字节数兜底（防 chunked 响应漏判）
+  const contentLength = Number(resp.headers.get('content-length') ?? 0)
+  if (contentLength > MAX_FILE_SIZE) {
+    throw new Error('图片大小超出限制')
+  }
+  const buffer = Buffer.from(await resp.arrayBuffer())
+  if (buffer.length === 0) {
+    throw new Error('图片内容为空')
+  }
+  if (buffer.length > MAX_FILE_SIZE) {
+    throw new Error('图片大小超出限制')
+  }
+
+  return { buffer, mimeType }
+}
+
+/**
+ * 有限并发执行（并发度 4）：转存场景图片数通常为个位数到几十张，
+ * 全串行太慢、全并发怕打爆图床，取小并发折中
+ */
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results = new Array<R>(items.length)
+  let next = 0
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const index = next++
+      results[index] = await fn(items[index])
+    }
+  })
+  await Promise.all(workers)
+  return results
+}
+
+/**
+ * 批量转存外链图片到对象存储（RustFS）
+ *
+ * 场景：Markdown 导入时正文里的图片多为外链（图床/远端仓库），
+ * 外链不可控（防盗链、失效、私有部署不可达），导入时把「能访问到的」
+ * 图片下载并转存到本站对象存储，正文 URL 改写为本站相对路径。
+ *
+ * 逐张独立容错：单张失败（404 / 超时 / 类型不符 / 超限）不影响其他图片，
+ * 失败项返回 error 描述，由前端保留原外链并聚合提示 —— 「能转存的转存，
+ * 不能转存的原样保留」。
+ *
+ * @returns 每个源 URL 一条结果（顺序与入参一致，已按 URL 去重）
+ */
+export async function transferRemoteImages(params: {
+  urls: string[]
+  userId: string
+  wikiId?: string
+  documentId?: string
+}): Promise<{ items: TransferRemoteItem[]; transferred: number }> {
+  const { urls, userId, wikiId, documentId } = params
+
+  // 去重（同一张图在正文引用多次只下载一次），保持首次出现顺序
+  const uniqueUrls = [...new Set(urls)]
+
+  const items = await mapWithConcurrency(uniqueUrls, 4, async (sourceUrl): Promise<TransferRemoteItem> => {
+    try {
+      // 1. 下载 + 校验（协议 / 类型 / 大小，复用上传接口的 5MB 与 MIME 白名单）
+      const { buffer, mimeType } = await downloadRemoteImage(sourceUrl)
+
+      // 2. 生成对象 key 并上传：与 uploadImage 同一套键方案与缓存头
+      const ext = MIME_TO_EXT[mimeType] || mimeType.split('/')[1] || 'bin'
+      const fileName = `${ulid().toLowerCase()}.${ext}`
+      const objectKey = buildObjectKey('img', fileName)
+      const contentHash = createHash('sha256').update(buffer).digest('hex')
+      await putObject(objectKey, buffer, mimeType)
+
+      // 3. 生成对外相对 URL（失败回滚已上传对象，与 uploadImage 容错一致）
+      let url: string
+      try {
+        url = buildObjectUrl(objectKey)
+      } catch (err) {
+        logger?.error({ err }, '[media] 转存生成对象访问 URL 失败')
+        await deleteObject(objectKey)
+        throw new Error('生成访问 URL 失败')
+      }
+
+      // 4. 落库 media_assets：绑定 documentId 即 attached（与上传接口语义一致）
+      const db = getDb()
+      try {
+        await db.insert(mediaAssets).values({
+          userId,
+          wikiId: wikiId ?? null,
+          documentId: documentId ?? null,
+          fileName,
+          filePath: objectKey,
+          // 原始名记录源 URL：便于后续按文档清理时人工溯源
+          originalName: sourceUrl,
+          mimeType,
+          size: buffer.length,
+          width: null,
+          height: null,
+          url,
+          kind: 'img',
+          status: documentId ? 'attached' : 'orphan',
+          contentHash,
+        })
+      } catch (err) {
+        logger?.error({ err }, '[media] 转存数据库写入失败，尝试回滚已上传对象')
+        await deleteObject(objectKey)
+        throw new Error('数据库写入失败')
+      }
+
+      return { sourceUrl, url, error: null }
+    } catch (err) {
+      // 单张失败不阻断批次：返回错误描述，前端保留原外链
+      const message = err instanceof Error ? err.message : '转存失败'
+      logger?.warn({ sourceUrl, message }, '[media] 外链图片转存失败')
+      return { sourceUrl, url: null, error: message }
+    }
+  })
+
+  const transferred = items.filter((item) => item.url !== null).length
+  return { items, transferred }
+}

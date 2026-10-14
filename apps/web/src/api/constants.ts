@@ -286,6 +286,8 @@ export const API_PATHS = {
   MEDIA: {
     /** 上传图片：POST multipart/form-data，需鉴权 */
     UPLOAD: '/media/upload',
+    /** 批量转存外链图片到对象存储：POST JSON，需鉴权（Markdown 导入场景） */
+    TRANSFER_REMOTE: '/media/transfer-remote',
   },
   /** 知识库分享模块接口（share.controller.ts，公开接口无需登录） */
   SHARE: {

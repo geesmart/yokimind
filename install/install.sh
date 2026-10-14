@@ -439,7 +439,7 @@ PRIMARY_IP=$(printf '%s\n' "$LAN_IPS" | head -n1)
 
 # 生效镜像地址：.env 显式设置优先，否则取客户版 compose 的默认值
 EFFECTIVE_IMAGE=$(env_get YOKIMIND_IMAGE)
-[ -n "$EFFECTIVE_IMAGE" ] || EFFECTIVE_IMAGE="geesmart/yokimind:v1.0.0"
+[ -n "$EFFECTIVE_IMAGE" ] || EFFECTIVE_IMAGE="geesmart/yokimind:latest"
 
 # 读回 .env 最终值（幂等合并后以文件为准；已有旧值场景展示的才是真实生效值）
 FINAL_PORT=$(env_get HTTP_PORT)

@@ -797,6 +797,8 @@ import { ApiError } from '@/api/request'
 import { getDocPersistence } from '@/composables/document-persistence'
 import { parseMarkdownToDoc } from '@/components/notion-editor/utils/markdown-import'
 import type { MarkdownImportResult } from '@/components/notion-editor/utils/markdown-import'
+import { collectExternalImageUrls, rewriteImageUrls } from '@/components/notion-editor/utils/normalize-markdown-json'
+import { transferRemoteImages } from '@/api/modules/media'
 import type { WikiDocItem } from '@/types/wiki-doc'
 import type { TrashItem } from '@/api/modules/wiki'
 import type { WikiItem } from '@/api/modules/wiki'
@@ -1167,12 +1169,15 @@ function onImportFileChange(event: Event) {
  * 2. parseMarkdownToDoc 解析为 TipTap JSON（headless 实例，与粘贴转换同一管线，
  *    首个 H1 摘出作为文档标题）；
  * 3. createDoc 建档（标题优先用解析出的 H1，否则文件名去扩展名，均截断 100 字符）；
- * 4. getDocPersistence(documentId).pushSnapshot：导入内容作为「脏快照」即时落
+ * 4. 外链图片转存：正文里的 http(s) 图片经服务端下载后转存到本站对象存储
+ *    （RustFS），成功的 URL 改写为 /media/... 相对路径，失败项保留原外链
+ *    （外链防盗链/失效不受控，「能转存的转存」）；
+ * 5. getDocPersistence(documentId).pushSnapshot：导入内容作为「脏快照」即时落
  *    内存 + IndexedDB，并自动排程服务端同步（限流/失败自动退避重试）——
  *    随后的路由跳转中 loadDocContent 读到 dirty 本地快照直接渲染（本地赢），
  *    同步队列稍后把服务端追平，天然绕开服务端 2s 保存限流，内容不丢；
- * 5. 跳转阅读态查看导入结果（内容已完整，与新建空文档进编辑态区分）；
- * 6. 结果提示：存在编辑器不支持语法残留时 warning 提示处数，否则 success。
+ * 6. 跳转阅读态查看导入结果（内容已完整，与新建空文档进编辑态区分）；
+ * 7. 结果提示：外链转存结果与不支持语法残留处数聚合提示。
  */
 async function handleImportMarkdown(file: File) {
   const wikiId = route.params.wikiId as string
@@ -1211,17 +1216,49 @@ async function handleImportMarkdown(file: File) {
       return
     }
 
-    // 4. 内容写入 local-first：脏快照落本地 + 自动排程服务端同步（见函数头注释）
-    getDocPersistence(node.documentId).pushSnapshot(parsed.content, parsed.wordCount)
+    // 4. 外链图片转存：建档后调服务端批量下载 → RustFS（绑定 documentId 落
+    //    attached 状态，进不了 orphan 清理队列）；整批接口异常时内容原样保留，
+    //    导入不因转存失败而中断
+    let content = parsed.content
+    let transferredCount = 0
+    let failedCount = 0
+    const externalUrls = collectExternalImageUrls(parsed.content)
+    if (externalUrls.length > 0) {
+      try {
+        const result = await transferRemoteImages({
+          urls: externalUrls,
+          wikiId,
+          documentId: node.documentId,
+        })
+        // 成功项按「源 URL → 本站相对 URL」改写正文（失败项保留原外链）
+        const urlMap = new Map(
+          result.items.filter((item) => item.url).map((item) => [item.sourceUrl, item.url!])
+        )
+        content = rewriteImageUrls(parsed.content, urlMap)
+        transferredCount = result.transferred
+        failedCount = externalUrls.length - transferredCount
+      } catch (error) {
+        console.warn('[LayoutLeft] transfer remote images failed:', error)
+        failedCount = externalUrls.length
+      }
+    }
 
-    // 5. 跳转阅读态：loadDocContent 读到 dirty 快照 → 本地赢 → 直接渲染导入内容
+    // 5. 内容写入 local-first：脏快照落本地 + 自动排程服务端同步（见函数头注释）
+    getDocPersistence(node.documentId).pushSnapshot(content, parsed.wordCount)
+
+    // 6. 跳转阅读态：loadDocContent 读到 dirty 快照 → 本地赢 → 直接渲染导入内容
     router.push(`/wiki/${wikiId}/${node.id}`)
 
-    // 6. 结果提示：残留（公式/脚注等按字面文本保留）不打断导入，warning 告知处数
-    if (parsed.residueCount > 0) {
-      toast.warning(`已导入「${node.title}」，${parsed.residueCount} 处编辑器不支持的语法按原文保留`)
+    // 7. 结果提示：转存结果 + 残留处数聚合（有失败/残留用 warning，纯成功用 success）
+    const notes: string[] = []
+    if (transferredCount > 0) notes.push(`${transferredCount} 张外链图片已转存到本地`)
+    if (failedCount > 0) notes.push(`${failedCount} 张转存失败保留原链接`)
+    if (parsed.residueCount > 0) notes.push(`${parsed.residueCount} 处编辑器不支持的语法按原文保留`)
+    const suffix = notes.length > 0 ? `，${notes.join('，')}` : ''
+    if (failedCount > 0 || parsed.residueCount > 0) {
+      toast.warning(`已导入「${node.title}」${suffix}`)
     } else {
-      toast.success(`已导入「${node.title}」`)
+      toast.success(`已导入「${node.title}」${suffix}`)
     }
   } catch (error) {
     if (error instanceof ApiError) {

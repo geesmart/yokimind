@@ -2,15 +2,18 @@ import { Hono } from 'hono'
 import { authMiddleware, getCurrentUserId } from '~/core/middleware/auth.middleware.js'
 import { BizException } from '~/core/lib/biz.exception.js'
 import { ErrorCode } from '~/config/error-code.js'
-import { uploadImage } from './media.service.js'
+import { vJson } from '~/core/helper/zod.helper.js'
+import { uploadImage, transferRemoteImages } from './media.service.js'
+import { TransferRemoteSchema } from './media.schema.js'
 
 /**
  * 媒体资产控制器
- * 提供图片上传接口，均需登录
+ * 提供图片上传与外链图片转存接口，均需登录
  *
  * - POST /media/upload          上传图片（multipart/form-data，字段名 file）
+ * - POST /media/transfer-remote 批量转存外链图片到对象存储（Markdown 导入场景）
  *
- * 注：图片访问走静态文件服务 `/uploads/*`，不需要 controller 转发
+ * 注：图片访问走统一入口 `/media/*` 路由直连对象存储，不需要 controller 转发
  */
 const mediaController = new Hono()
   // 上传图片（需鉴权）
@@ -47,6 +50,16 @@ const mediaController = new Hono()
 
     // 调用 service 完成落盘 + 入库（对外 URL 恒为相对路径 /media/{bucket}/{key}，见 storage.buildObjectUrl）
     const result = await uploadImage({ file, userId, wikiId, documentId })
+
+    return c.success(result)
+  })
+  // 批量转存外链图片（需鉴权，Markdown 导入场景）
+  // body: { urls: string[], wikiId?, documentId? }，逐张独立容错（部分成功允许）
+  .post('/transfer-remote', authMiddleware, vJson(TransferRemoteSchema), async (c) => {
+    const userId = getCurrentUserId(c)!
+    const { urls, wikiId, documentId } = c.req.valid('json')
+
+    const result = await transferRemoteImages({ urls, userId, wikiId, documentId })
 
     return c.success(result)
   })

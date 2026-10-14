@@ -10,7 +10,8 @@
     <!-- 登录表单：复用组件，成功后跳转控制台首页 -->
     <LoginForm @success="handleLoginSuccess" />
 
-    <!-- 演示账号提示（视觉示意） -->
+    <!-- 演示账号提示（视觉示意，暂时隐藏） -->
+    <!--
     <div
       class="flex items-start gap-2.5 p-3 rounded-xl text-xs text-muted-foreground mt-6"
       style="background: rgba(47, 116, 255, 0.12); border: 1px solid rgba(47, 116, 255, 0.18)"
@@ -18,6 +19,7 @@
       <Info :size="16" class="text-primary shrink-0 mt-0.5" />
       <p>演示账号：demo@example.com / demo123456</p>
     </div>
+    -->
 
     <!-- 页脚链接 -->
     <footer class="mt-8 flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -39,7 +41,6 @@
 
 <script lang="ts" setup>
 import { useRouter } from 'vue-router'
-import { Info } from '@lucide/vue'
 import AuthLayout from './components/auth-layout.vue'
 import LoginForm from './components/login-form.vue'
 import type { LoginResult } from '@/api/modules/user'

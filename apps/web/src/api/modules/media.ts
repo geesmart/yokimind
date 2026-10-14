@@ -2,7 +2,8 @@
  * 媒体资产模块接口
  *
  * 对接后端 `/api/v1/media/*` 接口（media.controller.ts）：
- * - uploadImage  上传图片  POST /media/upload  multipart/form-data  需鉴权
+ * - uploadImage         上传图片     POST /media/upload          multipart/form-data  需鉴权
+ * - transferRemoteImages 批量转存外链图片 POST /media/transfer-remote JSON             需鉴权
  *
  * 设计说明：
  * - alova 的 fetch adapter 不支持上传进度回调（fetch API 本身不支持上传进度）
@@ -15,7 +16,7 @@
  */
 import { API_BASE_URL, API_PREFIX, API_PATHS } from '../constants'
 import { getAccessToken, clearAuth } from '../../utils/token'
-import { ApiError } from '../request'
+import { alova, ApiError } from '../request'
 
 // ==================== 类型定义 ====================
 
@@ -178,4 +179,43 @@ export function uploadImage(
     // 发送请求
     xhr.send(formData)
   })
+}
+
+// ==================== 外链图片转存 ====================
+
+/**
+ * 转存单张外链图的结果（与后端 TransferRemoteItem 对齐）
+ */
+export interface TransferRemoteItem {
+  /** 原始外链 URL（用于映射改写正文） */
+  sourceUrl: string
+  /** 转存成功后的相对 URL（/media/{bucket}/{key}）；失败时为 null */
+  url: string | null
+  /** 失败原因；成功时为 null */
+  error: string | null
+}
+
+/** 批量转存响应 */
+export interface TransferRemoteResult {
+  /** 每个源 URL 一条结果（顺序与入参一致，已去重） */
+  items: TransferRemoteItem[]
+  /** 成功转存张数 */
+  transferred: number
+}
+
+/**
+ * 批量转存外链图片到对象存储
+ * POST /media/transfer-remote（JSON，需鉴权）
+ *
+ * Markdown 导入场景：把正文里「能访问到的」外链图片下载并转存到本站
+ * 对象存储，失败项逐条返回 error（部分成功允许），前端保留原外链。
+ *
+ * @param params 待转存 URL 列表 + 可选归属绑定（wikiId/documentId）
+ */
+export function transferRemoteImages(params: {
+  urls: string[]
+  wikiId?: string
+  documentId?: string
+}): Promise<TransferRemoteResult> {
+  return alova.Post<TransferRemoteResult>(API_PATHS.MEDIA.TRANSFER_REMOTE, params)
 }
