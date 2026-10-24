@@ -18,9 +18,12 @@
  * 不能引入 .vue / Vue 运行时依赖（否则服务端无法加载）。
  */
 import { eq } from 'drizzle-orm'
+import { flattenExtensions, getSchemaByResolvedExtensions } from '@tiptap/core'
 import { renderToHTMLString } from '@tiptap/static-renderer/pm/html-string'
 // .js 后缀是 NodeNext 解析惯例（映射到同名 .ts 源文件），tsx / Vite / tsc 全链路兼容
 import { buildSchemaExtensions } from '../../../../web/src/components/notion-editor/editor-extensions.js'
+import { enhanceCodeBlocks } from './code-html-enhancer.js'
+import { pruneUnknownNodes } from './content-json-prune.js'
 import { documents } from '~/db/schema.js'
 import { usePostgres } from '~/core/plugins/postgres.js'
 import { usePino } from '~/core/plugins/pino.js'
@@ -34,13 +37,28 @@ const logger = usePino()
 const extensions = buildSchemaExtensions()
 
 /**
+ * 渲染入口用的 schema 缓存（构建方式与 document-markdown.renderer.ts 同款：
+ * splitExtensions 不展开 StarterKit 等组合扩展，需自行 flatten）。
+ * 供 pruneUnknownNodes 校验节点 / 标记是否在 schema 内
+ */
+const htmlSchema = getSchemaByResolvedExtensions(flattenExtensions(extensions))
+
+/**
  * 把文档 content JSON（ProseMirror JSON，documents.content 列的值）渲染为 HTML
  * @param content Tiptap JSON（{ type: 'doc', content: [...] } 形态）
  * @returns 预渲染 HTML 字符串（与编辑器 getHTML 同构）
  * @throws 渲染失败时抛出（未知节点类型 / JSON 结构损坏等），调用方决定兜底策略
  */
 export function renderDocumentHtml(content: unknown): string {
-  return renderToHTMLString({ extensions, content: content as never })
+  // 剪除 schema 外的编辑器专属节点 / 标记（如 imageUpload 上传占位）——
+  // renderToHTMLString 遇 schema 外节点直接抛错，发布态剔除即正确语义
+  const { doc, prunedTypes } = pruneUnknownNodes(content as never, htmlSchema)
+  if (prunedTypes.length > 0) {
+    logger.warn({ prunedTypes }, 'prune unknown nodes before html render')
+  }
+  const html = renderToHTMLString({ extensions, content: doc as never })
+  // 代码块增强：语法高亮 / 行号拆行 / 复制与折叠按钮（见 code-html-enhancer.ts）
+  return enhanceCodeBlocks(html)
 }
 
 /**

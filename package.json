@@ -1,6 +1,6 @@
 {
   "name": "yokimind",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "private": true,
   "description": "YokiMind - 把你的知识记录，做团队的企业大脑",
   "scripts": {
@@ -20,7 +20,7 @@
   },
   "devDependencies": {
     "prettier": "^3.9.5",
-    "typescript": "^5.5.4",
+    "typescript": "7.0.2",
     "zx": "^8.8.5"
   },
   "engines": {

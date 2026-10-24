@@ -18,10 +18,10 @@
     "isolatedModules": true,
     // 不设 rootDir：本包 noEmit + declaration:false，rootDir 仅在产出文件时有意义；
     // 保留反而会把 include 进来的根级配置文件（vite.config.ts）判成 TS6059
-    "baseUrl": ".",
+    // TS6 起 baseUrl 已废弃（TS7 移除）：paths 一律用 ./ 相对前缀，不再依赖 baseUrl
     "paths": {
       "@/*": [
-        "src/*"
+        "./src/*"
       ]
     }
   },

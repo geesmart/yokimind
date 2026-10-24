@@ -74,9 +74,9 @@ export interface CreateWikiParams {
   name: string
   /** 知识库描述：可选，最长 500 字符 */
   description?: string
-  /** 知识库图标 key（可选，对应 icon-meta.ts 中的图标标识） */
+  /** 知识库图标（可选）：Solar 图标 id（统一面板选择）或历史 lucide 图标 key */
   icon?: string
-  /** 知识库主题色 key（可选，对应 icon-meta.ts 中的颜色标识） */
+  /** 知识库主题色 key（可选）：统一色板 EDITOR_ICON_COLORS 的 key 或历史 icon-meta 色 key */
   color?: string
   /** 是否自动 RAG 索引（可选，不传后端默认 false） */
   ragEnabled?: boolean

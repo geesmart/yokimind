@@ -685,6 +685,40 @@ export const admins = pgTable('admins', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 })
 
+/**
+ * 个人访问令牌表（PAT，Personal Access Token）
+ * 供智能体接入协议（MCP / Skills / Agent API / CLI）以 Bearer 方式认证，
+ * 与登录 token（user_token，绑定设备、会过期）隔离；令牌等同本人全权限。
+ * 安全约定：明文令牌（yki_<48hex>）仅在创建响应中出现一次，库中只存 sha256 哈希。
+ */
+export const accessTokens = pgTable(
+  'access_tokens',
+  {
+    /** ULID 主键（应用层生成，小写） */
+    id: text('id').primaryKey().$defaultFn(() => generateId()),
+    /** 所属用户 ID（users.id，小写 ULID；项目规范不建数据库外键） */
+    userId: text('user_id').notNull(),
+    /** 令牌备注名（如「Claude Desktop」） */
+    name: text('name').notNull(),
+    /** 令牌展示前缀（明文前 12 字符，如 yki_1a2b3c4d），用于列表脱敏识别 */
+    tokenPrefix: text('token_prefix').notNull(),
+    /** 令牌哈希（sha256 hex，唯一索引：verifyPat 据此唯一定位） */
+    tokenHash: text('token_hash').notNull(),
+    /** 最近使用时间（写库按 >60s 节流） */
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+    /** 过期时间；NULL = 永不过期 */
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    /** 吊销时间；非 NULL = 已吊销 */
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    /** 记录创建时间 */
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('access_tokens_user_id_idx').on(table.userId),
+    uniqueIndex('access_tokens_token_hash_idx').on(table.tokenHash),
+  ],
+)
+
 // ============ 知识库领域表类型导出 ============
 
 /** 知识库表查询结果类型 */
@@ -755,3 +789,7 @@ export type NewAppSetting = typeof appSettings.$inferInsert
 export type Admin = typeof admins.$inferSelect
 /** 管理员表插入数据类型 */
 export type NewAdmin = typeof admins.$inferInsert
+/** 个人访问令牌表查询结果类型 */
+export type AccessToken = typeof accessTokens.$inferSelect
+/** 个人访问令牌表插入数据类型 */
+export type NewAccessToken = typeof accessTokens.$inferInsert

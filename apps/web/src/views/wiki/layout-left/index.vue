@@ -51,9 +51,9 @@
           >
             <span
               class="inline-flex items-center justify-center w-7 h-7 rounded-lg"
-              :style="{ background: wikiColorStyle.bgStyle, color: wikiColorStyle.colorStyle }"
+              :style="{ background: wikiIconVisual.bg }"
             >
-              <component :is="wikiIconComponent" :size="16" />
+              <WikiIcon :icon="sidebarWiki?.icon" :color="sidebarWiki?.color" :size="16" />
             </span>
             <span class="text-[17px] font-semibold text-foreground">{{
               sidebarWiki?.name || '知识库'
@@ -144,9 +144,9 @@
                 <!-- 图标 -->
                 <span
                   class="inline-flex items-center justify-center w-8 h-8 rounded-lg shrink-0"
-                  :style="getWikiColorStyle(item.color)"
+                  :style="{ background: resolveWikiIconColor(item.color).bg }"
                 >
-                  <component :is="getWikiIconComponent(item.icon)" :size="16" />
+                  <WikiIcon :icon="item.icon" :color="item.color" :size="16" />
                 </span>
 
                 <!-- 名称和标识 -->
@@ -178,9 +178,9 @@
       <div v-else class="flex items-center gap-2 px-1 py-1 min-w-0">
         <span
           class="inline-flex items-center justify-center w-7 h-7 rounded-lg shrink-0"
-          :style="{ background: wikiColorStyle.bgStyle, color: wikiColorStyle.colorStyle }"
+          :style="{ background: wikiIconVisual.bg }"
         >
-          <component :is="wikiIconComponent" :size="16" />
+          <WikiIcon :icon="sidebarWiki?.icon" :color="sidebarWiki?.color" :size="16" />
         </span>
         <span class="text-[17px] font-semibold text-foreground truncate">{{
           sidebarWiki?.name || '知识库'
@@ -731,7 +731,6 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { toast } from 'vue-sonner'
-import type { Component } from 'vue'
 import { Button } from '@/components/ui/button'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { Kbd } from '@/components/ui/kbd'
@@ -768,7 +767,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
-  BookOpen,
   Maximize2,
   Minimize2,
   Search,
@@ -818,12 +816,8 @@ import {
   findGuestNode,
   toGuestTreeData,
 } from '@/views/share/guest-tree'
-import {
-  getIconComponent,
-  getColorStyle,
-  COLOR_OPTIONS,
-  DEFAULT_COLOR,
-} from '@/views/dashboard/components/icon-meta'
+import { resolveWikiIconColor } from '@/views/dashboard/components/wiki-icon-meta'
+import WikiIcon from '@/views/dashboard/components/wiki-icon.vue'
 
 /**
  * 组件 Props
@@ -882,19 +876,9 @@ const filteredWikis = computed(() => {
 })
 
 /**
- * 获取指定知识库的图标组件
+ * 顶栏/访客块的知识库图标底色（渲染统一走 WikiIcon 组件，自动区分 Solar id 与 legacy lucide key）
  */
-function getWikiIconComponent(iconKey: string | null | undefined) {
-  const comp = getIconComponent(iconKey)
-  return comp ?? BookOpen
-}
-
-/**
- * 获取指定知识库的颜色样式
- */
-function getWikiColorStyle(colorKey: string | null | undefined) {
-  return getColorStyle(colorKey)
-}
+const wikiIconVisual = computed(() => resolveWikiIconColor(sidebarWiki.value?.color))
 
 /**
  * 切换到指定知识库
@@ -937,26 +921,6 @@ const sidebarWiki = computed<{ name: string; icon?: string | null; color?: strin
     return props.wiki ?? null
   }
 )
-
-/**
- * 顶栏知识库图标组件：优先用 sidebarWiki.icon 查找，未找到回退到 BookOpen
- */
-const wikiIconComponent = computed<Component>(() => {
-  const comp = getIconComponent(sidebarWiki.value?.icon)
-  return comp ?? BookOpen
-})
-
-/**
- * 顶栏知识库图标颜色样式
- */
-const wikiColorStyle = computed(() => {
-  if (sidebarWiki.value?.color) {
-    const opt = COLOR_OPTIONS.find((c) => c.key === sidebarWiki.value!.color)
-    if (opt) return { bgStyle: opt.bgStyle, colorStyle: opt.colorStyle }
-  }
-  const defaultColor = COLOR_OPTIONS.find((c) => c.key === DEFAULT_COLOR) ?? COLOR_OPTIONS[0]
-  return { bgStyle: defaultColor.bgStyle, colorStyle: defaultColor.colorStyle }
-})
 
 /**
  * 编辑知识库成功回调

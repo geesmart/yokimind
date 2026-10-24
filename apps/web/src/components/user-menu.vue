@@ -3,7 +3,7 @@
     公共用户菜单组件（顶栏右侧头像下拉）
     - 已登录：仅显示头像圆标（不显示昵称，昵称/邮箱在菜单头部展示），点击弹出下拉菜单
     - 未登录：显示登录用户图标，点击跳转登录页
-    菜单项：修改用户信息 / 修改密码 / 返回工作台 / 回到首页 / AI 大模型管理（仅管理员，弹窗） / 退出登录
+    菜单项：修改用户信息 / 修改密码 / 返回工作台 / 回到首页 / 智能体接入 / AI 大模型管理（仅管理员，弹窗） / 退出登录
     无 props / 无 emits，wiki 顶栏与 dashboard 顶栏均可零配置复用
   -->
   <!-- 未登录：登录用户图标，点击去登录页 -->
@@ -72,6 +72,12 @@
         回到首页
       </DropdownMenuItem>
 
+      <!-- 智能体接入（所有登录用户）：跳转 /settings/agents 管理访问令牌与 MCP / CLI / Skills 指引 -->
+      <DropdownMenuItem @click="router.push('/settings/agents')">
+        <Bot class="size-3.5 text-muted-foreground mr-1" />
+        智能体接入
+      </DropdownMenuItem>
+
       <!-- AI 大模型管理（仅管理员显示）：isAdmin 由 profile 接口返回；点击原地弹窗配置，不跳页面 -->
       <DropdownMenuItem v-if="user.isAdmin" @click="aiSettingsVisible = true">
         <ShieldCheck class="size-3.5 text-muted-foreground mr-1" />
@@ -118,6 +124,7 @@ import {
   LayoutDashboard,
   CircleUserRound,
   ShieldCheck,
+  Bot,
 } from '@lucide/vue'
 import { logout, getProfile } from '@/api/modules/user'
 import { getUserInfo, isLoggedIn, saveUserInfo, clearAuth } from '@/utils/token'

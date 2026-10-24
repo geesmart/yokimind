@@ -32,6 +32,13 @@ const router = createRouter({
       component: () => import('@/views/admin/index.vue'),
     },
     {
+      // 智能体接入页（需登录）：访问令牌（PAT）管理与 MCP / CLI / Skills 接入指引
+      // 三协议共用 PAT 令牌，外部 AI 客户端（Claude / Cursor / Trae 等）经此访问知识库
+      path: '/settings/agents',
+      name: 'agents',
+      component: () => import('@/views/agents/index.vue'),
+    },
+    {
       // 知识库编辑页（语雀风格三栏：文档树 / 编辑器 / 大纲）
       // 三参数：wikiId=知识库 ID，docId=选中文档树节点 ID（可选），mode=编辑/预览模式后缀（可选）
       // mode 后缀约定：/edit=编辑态、/view=只读预览态，与顶栏「编辑/预览」Tabs 双向同步（URL 是唯一模式源）
@@ -152,6 +159,10 @@ router.beforeEach(async (to) => {
   }
   // 未登录进入 AI 大模型管理页：跳转登录页（页内再做管理员校验）
   if (!isLoggedIn() && to.name === 'admin') {
+    return { name: 'login' }
+  }
+  // 未登录进入智能体接入页：跳转登录页（令牌管理依赖登录态）
+  if (!isLoggedIn() && to.name === 'agents') {
     return { name: 'login' }
   }
   // 已登录访问登录/注册页：回首页

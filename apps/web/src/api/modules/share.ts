@@ -125,10 +125,14 @@ export interface UpsertNodeShareParams {
 export interface ShareMeta {
   /** 知识库名称（密码卡片/浏览页顶栏展示） */
   wikiName: string
-  /** 知识库图标（lucide 图标 key，如 Lightbulb，经 icon-meta 转组件渲染，可空） */
+  /** 知识库图标（Solar 图标 id 或 legacy lucide key 如 Lightbulb，可空） */
   wikiIcon?: string | null
-  /** 知识库颜色 key（icon-meta 色板，如 blue，访客侧图标底色渲染用，可空） */
+  /** 知识库颜色 key（统一色板或 legacy icon-meta 色板，如 blue，访客侧图标底色渲染用，可空） */
   wikiColor?: string | null
+  /** Solar 图标烘焙的完整 SVG 字符串（icon 为 Solar id 时下发；legacy key 为 null，走 icon-meta 渲染） */
+  wikiIconSvg?: string | null
+  /** 烘焙色值 hex（rainbow 为 null；仅 wikiIconSvg 非空时有意义，底色淡化用） */
+  wikiIconColor?: string | null
   /**
    * 访问类型（决定访客端令牌 scope 与路由形态）：
    * - wiki：整库公开（可浏览全库文档树）

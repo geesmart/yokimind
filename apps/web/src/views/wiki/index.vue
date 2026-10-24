@@ -66,6 +66,9 @@
           :content-loading="contentLoading"
           :doc-path="guestMode ? guestDocPath : docPath"
           :doc-title="guestMode ? guestDocTitle : activeDocTitle"
+          :wiki-name="guestMode ? (shareMeta?.wikiName ?? '') : (wikiData?.name ?? '')"
+          :wiki-icon="guestMode ? (guestWikiInfo?.icon ?? null) : (wikiData?.icon ?? null)"
+          :wiki-clickable="!guestMode || guestAccessType === 'wiki'"
           :icon="guestMode ? guestDocIcon : activeDocIcon"
           :document-id="currentDocumentId"
           :node-id="docId"
@@ -75,6 +78,7 @@
           :show-right-toggle="true"
           @update:doc-title="onDocTitleUpdate"
           @update:doc-icon="onDocIconUpdate"
+          @go:wiki="onGoWikiHome"
           @toggle:left="toggleLeftPanel"
           @toggle:right="toggleRightPanel"
         />
@@ -258,6 +262,27 @@ function toggleRightPanel() {
     rightPanelRef.value?.expand()
   } else {
     rightPanelRef.value?.collapse()
+  }
+}
+
+/**
+ * 面包屑知识库名点击：跳转知识库首页（第一篇文档）
+ * - owner：取展示树第一个顶层可见节点（编辑态 URL）
+ * - 访客整库形态：取访客树第一篇（/view 只读 URL）
+ * - 访客单页形态：无树不可跳转（wiki-clickable=false 本就不可点击，此处兜底空操作）
+ * 已停留在第一篇时无动作，避免重复 push
+ */
+function onGoWikiHome() {
+  if (guestMode.value) {
+    const first = firstGuestNode(guestTree.value)
+    if (first && first.id !== docId.value) {
+      router.push(`/wiki/${wikiId.value}/${first.id}/view`)
+    }
+    return
+  }
+  const first = wikiDocStore.sortedDisplayDocs[0]
+  if (first && first.id !== docId.value) {
+    router.push(`/wiki/${wikiId.value}/${first.id}/edit`)
   }
 }
 

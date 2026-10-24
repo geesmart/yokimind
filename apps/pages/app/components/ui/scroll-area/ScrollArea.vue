@@ -26,7 +26,7 @@ const delegatedProps = computed(() => {
   >
     <ScrollAreaViewport
       data-slot="scroll-area-viewport"
-      class="size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-1"
+      class="size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-1"
     >
       <slot />
     </ScrollAreaViewport>

@@ -29,17 +29,31 @@
       <div
         class="overflow-y-auto max-h-[80vh] rounded-xl bg-white px-8 py-6 shadow-sm ring-1 ring-gray-100"
       >
-        <NotionEditor :editable="editable" :auto-save="false" :content="testContent" />
+        <NotionEditor
+          ref="editorRef"
+          :editable="editable"
+          :auto-save="false"
+          :content="testContent"
+        />
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watchEffect } from 'vue'
 import NotionEditor from '@/components/notion-editor/index.vue'
 
 const editable = ref(true)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- 测试页专用，松散类型
+const editorRef = ref<any>(null)
+
+// dev 环境把编辑器实例挂到 window，便于控制台直接调试命令/选区（测试页专用）
+if (import.meta.env.DEV) {
+  watchEffect(() => {
+    ;(window as unknown as { __editor?: unknown }).__editor = editorRef.value?.editor
+  })
+}
 
 /**
  * 测试用编辑器内容：包含 H1-H6、段落、列表、引用，便于验证手柄在各类块上的对齐效果。

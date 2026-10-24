@@ -29,7 +29,7 @@ const delegatedProps = reactiveOmit(props, 'class')
     <!-- 视口：实际滚动区域，占满根容器并继承圆角；聚焦时展示 ring 焦点环 -->
     <ScrollAreaViewport
       data-slot="scroll-area-viewport"
-      class="focus-visible:ring-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1"
+      class="focus-visible:ring-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-2 focus-visible:outline-1"
     >
       <slot />
     </ScrollAreaViewport>

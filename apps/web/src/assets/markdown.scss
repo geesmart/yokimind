@@ -27,11 +27,13 @@
 
     /* ---- 1.1 占位符提示（Placeholder）----
        Tiptap Placeholder 扩展通过 data-placeholder 注入文案。
-       用 ::before + float:left 实现「仅当内容为空时显示」的占位效果：
-       - float:left 让占位文字脱离正常流，不参与光标定位；
-       - height:0 避免占位符占据额外高度，保证空行高度一致；
-       - pointer-events:none 防止占位符拦截点击/文本选择。 */
-    p.is-empty::before,
+       用 ::before 实现「仅当内容为空时显示」的占位效果：
+       - 脱离正常流（float / absolute），不参与光标定位；
+       - pointer-events:none 防止占位符拦截点击/文本选择。
+       注意：Prompt 块（md-prompt-desc / md-prompt-instr）的占位不在本组 ——
+       它们的 ::before 已被 markdown.css Prompt 章节的 + chip / 标签占用，
+       在这里再挂 content 会把占位文案灌进 chip 盒子，一字一行竖排溢出卡片
+       （占位统一由 markdown.css 的 .is-empty::after / code::before 渲染）。 */
     h1.is-empty::before,
     h2.is-empty::before,
     h3.is-empty::before {
@@ -39,7 +41,27 @@
       float: left;
       color: var(--md-color-text-disabled); /* 令牌由共享包提供 */
       pointer-events: none;
-      height: 0;
+      height: 0; /* 不占据额外高度，保证空行高度一致 */
+    }
+
+    /* 段落占位改用绝对定位单行裁剪盒：引导语较长，窄容器（如分栏）里
+       float 方案会换行叠到后续内容，超出宽度时单行截断出省略号。
+       绝对定位与 float 同样脱离文档流（不参与光标定位、不撑高空行），
+       left/right 双侧钉住宽度，配合 nowrap + ellipsis 完成截断。 */
+    p.is-empty {
+      position: relative; /* 占位符 ::before 的定位包含块 */
+    }
+    p.is-empty::before {
+      content: attr(data-placeholder);
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      color: var(--md-color-text-disabled); /* 令牌由共享包提供 */
+      pointer-events: none;
     }
 
     /* 空标题占位符修正：
@@ -65,7 +87,7 @@
        ProseMirror 会在选中块的 DOM 上加 ProseMirror-selectednode 类，
        这里给块级元素加浅色背景提供选中反馈（Notion 式高亮）。
        图片 / hr 等已有各自的选中样式，不在本规则范围内。 */
-    :is(p, h1, h2, h3, h4, h5, h6, ul, blockquote, pre, [data-block-type='highlight-block']).ProseMirror-selectednode {
+    :is(p, h1, h2, h3, h4, h5, h6, ul, blockquote, pre, [data-block-type='highlight-block'], [data-callout-type], [data-card-type], [data-card-title], [data-columns], [data-steps], [data-step], [data-step-title]).ProseMirror-selectednode {
       background-color: rgba(47, 116, 255, 0.08);
       border-radius: var(--md-radius-sm);
       transition: background-color 0.15s ease;
@@ -141,7 +163,7 @@
       content: ''; /* 形状由下方各层级的 mask-image 提供 */
       pointer-events: none;
       user-select: none;
-      margin-left: -50px;
+      margin-left: -64px;
       transition: background-color 0.15s ease;
     }
 
@@ -238,13 +260,89 @@
   }
 
   /* ==========================================================================
-     六、响应式适配（小屏设备）——编辑态图标位移
+     六、标题折叠（编辑态交互）
+     --------------------------------------------------------------------------
+     HeadingFold 扩展（extensions/heading-fold.ts）：顶层标题可折叠本节。
+     gutter 常驻元素与悬停手柄（左→右，槽位相对标题左缘）：
+       [H 层级图标 -64~-46] [⋮⋮ 拖拽手柄 -40~-20（悬停）] [▼ 折叠箭头 -20~-2]
+     - 折叠箭头由本节 ::after 渲染：悬停所在标题行才显示（平时透明
+       但保持占位——移入箭头区域即触发宿主 :hover，箭头现身可点击）；
+       图形为 Flowbite 实心三角（caret-right，原生指向右），展开态旋转
+       90° 朝下（▼），折叠态不旋转指向右（▶，表示「点击展开」）；
+       点击热区由扩展的 handleDOMEvents.mousedown 读取本规则的计算
+       left/width 定位（±4px 容差，桌面/移动端通用）；
+     - 折叠后内容区由 Decoration.node 加 fold-hidden 类隐藏（display:none），
+       纯视图层不改动文档；发布页不加载本文件，内容恒展开；
+     - 折叠交互仅在可编辑态存在：PM 只读实例（AI 预览 / 文档预览模式）
+       view.dom 为 contenteditable='false'，箭头不渲染。
+     ========================================================================== */
+
+  /* 折叠隐藏：!important 压过块自身的 display 规则（如 [data-columns] 的 flex） */
+  .ProseMirror .fold-hidden {
+    display: none !important;
+  }
+
+  /* 顶层标题：折叠箭头（Flowbite caret-right 实心三角，
+     github.com/themesberg/flowbite-icons），图形原生指向右，
+     展开态旋转 90° 朝下（▼）；默认透明，悬停所在标题行才显示；
+     盒子 [-20,0]：图形 12px 居中（视觉约 [-16,-4]），右缘与标题文字
+     左缘相接、左缘与悬停 grip 根元素（[-40,-20]）相接——grip → 箭头 →
+     文字的整段悬停路径无缝（标题块上手柄桥接条由组件隐藏，全靠本盒补位）；
+     定位基准为标题自身的 position: relative（§二 为层级图标设置） */
+  .ProseMirror[contenteditable='true'] > :is(h1, h2, h3, h4, h5, h6)::after {
+    content: '';
+    position: absolute;
+    left: -20px;
+    top: 50%;
+    transform: translateY(-50%) rotate(90deg);
+    width: 20px;
+    height: 18px;
+    background-color: #e5e5e5; /* 比层级图标（--md-color-text-disabled #a1a1a1）浅两档 */
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='currentColor' fill-rule='evenodd' d='M10.271 5.575C8.967 4.501 7 5.43 7 7.12v9.762c0 1.69 1.967 2.618 3.271 1.544l5.927-4.881a2 2 0 0 0 0-3.088l-5.927-4.88Z' clip-rule='evenodd'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='currentColor' fill-rule='evenodd' d='M10.271 5.575C8.967 4.501 7 5.43 7 7.12v9.762c0 1.69 1.967 2.618 3.271 1.544l5.927-4.881a2 2 0 0 0 0-3.088l-5.927-4.88Z' clip-rule='evenodd'/%3E%3C/svg%3E");
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-size: 12px 12px;
+    mask-size: 12px 12px;
+    pointer-events: auto;
+    cursor: pointer;
+    /* 必须压在拖拽手柄的桥接条（.drag-handle::before，pointer-events:auto，
+       从 grip 右缘一直盖到标题文字 [-20,0]）之上：否则鼠标进入箭头与
+       标题文字之间时命中桥接条（手柄根元素的伪元素）而非标题，
+       标题 :hover 失效 → 箭头隐身、H 图标失去 hover 加深（「icon 消失」bug）。
+       提层后箭头区命中箭头（heading 的伪元素，算悬停标题），hover 链不断，
+       手柄也因鼠标仍在 view.dom 内而保持可见；普通块无箭头，桥接条照常工作 */
+    z-index: 1;
+    opacity: 0;
+    transition:
+      background-color 0.15s ease,
+      opacity 0.15s ease;
+  }
+
+  /* 已折叠标题：箭头回到原生朝向，指向右侧（▶） */
+  .ProseMirror[contenteditable='true'] > :is(h1, h2, h3, h4, h5, h6)[data-folded]::after {
+    transform: translateY(-50%);
+  }
+
+  /* 悬停顶层标题：显示箭头并加深（与层级图标 hover 色一致） */
+  .ProseMirror[contenteditable='true'] > :is(h1, h2, h3, h4, h5, h6):hover::after {
+    opacity: 1;
+    background-color: #525252;
+  }
+
+  /* ==========================================================================
+     七、响应式适配（小屏设备）——编辑态图标位移
      --------------------------------------------------------------------------
      共享包的移动端排版压缩在 @yokimind/markdown-css；
-     这里只处理标题层级图标在窄屏下的位移：
-     图标从 gutter（桌面 margin-left: -50px）移进标题自身预留的
+     这里只处理标题层级图标与折叠箭头在窄屏下的位移：
+     图标从 gutter（桌面 margin-left: -64px）移进标题自身预留的
      padding-left: 36px 内，否则常显图标的负 margin 会越出视口被裁切；
      尺寸沿用桌面 18x18 无需覆盖。
+     折叠箭头（::after）移进标题 padding 区右侧 [18,36]、层级图标在左
+     [0,18]，与桌面 [H][grip][▼] 的左右顺序一致，点击热区由扩展读取
+     计算样式自动跟随，无需改 JS。
      ========================================================================== */
   @media (max-width: 640px) {
     h1,
@@ -256,8 +354,15 @@
       padding-left: 36px;
 
       &::before {
-        margin-left: 0; /* 覆盖桌面的 -50px：放进标题预留的 padding 内 */
+        /* 覆盖桌面的 -64px：图标放进 padding 区左侧 [0,18]，
+           右槽 [18,36] 让给折叠箭头（与桌面 [H][grip][▼] 顺序一致） */
+        margin-left: 0;
       }
+    }
+
+    /* 折叠箭头移进标题 padding 区右侧 [18,36]（层级图标左侧 [0,18]） */
+    .ProseMirror[contenteditable='true'] > :is(h1, h2, h3, h4, h5, h6)::after {
+      left: 18px;
     }
   }
 }

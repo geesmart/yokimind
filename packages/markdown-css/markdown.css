@@ -27,6 +27,22 @@
    ============================================================================ */
 
 /* ============================================================================
+   〇、代码字体：Geist Mono（npm 包 geist，本包依赖）
+   --------------------------------------------------------------------------
+   - 可变字重单文件（wght 100-900），一条 @font-face 覆盖全部粗细；
+   - url 相对路径指向本包 node_modules 的 pnpm 符号链接，Vite/Nuxt 处理
+     url() 时按符号链接 realpath 打进产物，web 与 pages 两端自动携带；
+   - 仅声明等宽族（代码场景用 Geist 家族的 Mono cut），正文/UI 字体不变。
+   ============================================================================ */
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('node_modules/geist/dist/fonts/geist-mono/GeistMono-Variable.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ============================================================================
    一、设计令牌（Design Tokens）
    --------------------------------------------------------------------------
    以 CSS 自定义属性集中管理颜色 / 字体 / 圆角 / 间距等设计变量：
@@ -47,7 +63,7 @@
   --md-color-table-header-bg: #f5f5f5; /* 表头背景 */
   --md-radius-sm: 4px; /* 小圆角（行内代码） */
   --md-radius-md: 8px; /* 中圆角（代码块 / 表格） */
-  --md-font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --md-font-mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
   --md-transition: all 0.15s ease; /* 统一过渡时长，保证交互一致 */
   --md-line-height: 1.8; /* 正文行高，保证中文可读性 */
 
@@ -143,7 +159,7 @@
 /* ============================================================================
    三、列表（无序 / 有序）
    --------------------------------------------------------------------------
-   两者共用相同的字号与行高，仅 list-style 不同；
+   两者共用相同的上下内边距与字号行高，仅 list-style 与左侧缩进不同；
    通过 li 内段落与末项间距的控制，消除列表嵌套时的多余空白。
    ========================================================================== */
 
@@ -180,6 +196,8 @@
    - 嵌套 <ol> 通过 flex-basis:100% 换行到独立一行，缩进由 ol 自身 padding 提供。 */
 :is(.editor-content, .help-content) ol {
   counter-reset: item; /* 每个 ol 独立计数，嵌套层级自动新建作用域 */
+  padding-top: 10px;
+  padding-bottom: 10px;
   padding-left: 10px;
   list-style: none; /* 隐藏原生编号，改用 ::before 绘制 */
   color: var(--md-color-text-secondary);
@@ -285,7 +303,10 @@
 /* ---- 4.6 选中态对勾：内联 SVG data URI ----
    使用 data URI 可避免额外网络请求，提升首屏加载性能；
    通过 background-size: contain 保证对勾随盒子等比缩放。 */
-:is(.editor-content, .help-content) ul[data-type='taskList'] li[data-checked='true'] > label::after {
+:is(.editor-content, .help-content)
+  ul[data-type='taskList']
+  li[data-checked='true']
+  > label::after {
   content: '';
   width: 14px;
   height: 14px;
@@ -488,7 +509,9 @@
 
 /* ---- 8.6 预设样式：阴影 ---- */
 :is(.editor-content, .help-content) img[data-style='shadow'] {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 /* ============================================================================
@@ -517,7 +540,9 @@
   border-style: solid;
   margin-top: 8px;
   margin-bottom: 8px;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
   padding-left: 16px; /* 兜底覆盖标题可能的左侧预留（web 编辑态图标已改 gutter 方案，保守保留） */
 }
 
@@ -594,11 +619,14 @@
   border-style: solid;
   margin-top: 8px;
   margin-bottom: 8px;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 /* 容器无背景色时的兜底：透明背景 + 透明边框 */
-:is(.editor-content, .help-content) [data-block-type='highlight-block'][data-block-color='transparent'] {
+:is(.editor-content, .help-content)
+  [data-block-type='highlight-block'][data-block-color='transparent'] {
   background-color: transparent;
   border-color: transparent;
 }
@@ -610,6 +638,474 @@
 
 :is(.editor-content, .help-content) [data-block-type='highlight-block'] > :last-child {
   margin-bottom: 0;
+}
+
+/* ============================================================================
+   9.4 Callout 标注块（callout）：语义化标注容器（信息/确认/备注/技巧/警告/危险）
+   --------------------------------------------------------------------------
+   结构：div[data-callout-type]（可容纳任意子块）。浅色填充 + 同色系边框 +
+   左上角类型图标；图标用 ::before + CSS mask 渲染（编辑器与发布页裸 HTML
+   行为一致，颜色随类型变量走）。六种类型六套独立色板（Tailwind 标准色阶：
+   bg 取 50 阶、border 取 200 阶、图标取 600 阶、正文取 800 阶 14px（内层 p 因
+   2.1 段落显式 16px 截断继承，由本节末尾的 p 下压规则收敛），同色相相关）：
+   info 蓝、note 紫(violet)、tip 青(cyan)、check 绿、warning 黄(amber)、danger 红。
+   ========================================================================== */
+:is(.editor-content, .help-content) [data-callout-type] {
+  position: relative;
+  font-size: 14px;
+  padding: 12px 16px 12px 44px;
+  border-radius: 10px;
+  border-width: 1px;
+  border-style: solid;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+/* 类型图标：::before + mask（SVG data URI），颜色即图标色 */
+:is(.editor-content, .help-content) [data-callout-type]::before {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 16px;
+  width: 18px;
+  height: 18px;
+  background-color: var(--callout-icon-color, #2563eb);
+  -webkit-mask-image: var(--callout-icon);
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  -webkit-mask-position: center;
+  mask-image: var(--callout-icon);
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  mask-position: center;
+}
+
+/* ---- info：蓝色系（Tailwind blue 50/200/600/800）---- */
+:is(.editor-content, .help-content) [data-callout-type='info'] {
+  color: #1e40af;
+  background-color: #eff6ff;
+  border-color: #bfdbfe;
+  --callout-icon-color: #2563eb;
+  --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 16v-4'/%3E%3Cpath d='M12 8h.01'/%3E%3C/svg%3E");
+}
+
+/* ---- note：紫色系（Tailwind violet 50/200/600/800）---- */
+:is(.editor-content, .help-content) [data-callout-type='note'] {
+  color: #5b21b6;
+  background-color: #f5f3ff;
+  border-color: #ddd6fe;
+  --callout-icon-color: #7c3aed;
+  --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 8v4'/%3E%3Cpath d='M12 16h.01'/%3E%3C/svg%3E");
+}
+
+/* ---- tip：青色系（Tailwind cyan 50/200/600/800）---- */
+:is(.editor-content, .help-content) [data-callout-type='tip'] {
+  color: #155e75;
+  background-color: #ecfeff;
+  border-color: #a5f3fc;
+  --callout-icon-color: #0891b2;
+  --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5'/%3E%3Cpath d='M9 18h6'/%3E%3Cpath d='M10 22h4'/%3E%3C/svg%3E");
+}
+
+/* ---- check：绿色系（Tailwind green 50/200/600/800）---- */
+:is(.editor-content, .help-content) [data-callout-type='check'] {
+  color: #166534;
+  background-color: #f0fdf4;
+  border-color: #bbf7d0;
+  --callout-icon-color: #16a34a;
+  --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+}
+
+/* ---- warning：黄色系（Tailwind amber 50/200/600/800）---- */
+:is(.editor-content, .help-content) [data-callout-type='warning'] {
+  color: #92400e;
+  background-color: #fffbeb;
+  border-color: #fde68a;
+  --callout-icon-color: #d97706;
+  --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3'/%3E%3Cpath d='M12 9v4'/%3E%3Cpath d='M12 17h.01'/%3E%3C/svg%3E");
+}
+
+/* ---- danger：红色系（Tailwind red 50/200/600/800）---- */
+:is(.editor-content, .help-content) [data-callout-type='danger'] {
+  color: #991b1b;
+  background-color: #fef2f2;
+  border-color: #fecaca;
+  --callout-icon-color: #dc2626;
+  --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7.86 2h8.28L22 7.86v8.28L16.14 22H7.86L2 16.14V7.86L7.86 2z'/%3E%3Cpath d='M12 8v4'/%3E%3Cpath d='M12 16h.01'/%3E%3C/svg%3E");
+}
+
+/* 容器内部子块间距收敛：首尾清除多余外边距，避免内边距 + 子块边距叠加 */
+:is(.editor-content, .help-content) [data-callout-type] > :first-child {
+  margin-top: 0;
+}
+
+:is(.editor-content, .help-content) [data-callout-type] > :last-child {
+  margin-bottom: 0;
+}
+
+/* callout 内正文 14px：容器的 font-size 会被子块显式字号（2.1 段落 p 16px）
+   截断继承，按设计意图（头注释「正文取 800 阶 14px」）对内层 p 显式下压；
+   覆盖直接段落、列表项与引用内的 p（特异性 (0,2,1) 稳压段落规则 (0,1,1)） */
+:is(.editor-content, .help-content) [data-callout-type] p {
+  font-size: 14px;
+}
+
+/* ============================================================================
+   9.5 Card 卡片块（card）：通用卡片 + 6 种语义卡片容器
+   --------------------------------------------------------------------------
+   结构：div[data-card-type]（首子节点为可选 p[data-card-title] 标题 +
+   任意子块描述/正文）。卡片风视觉：白底 + 边框 + 轻阴影，图标在顶部左侧、
+   内容从图标下方开始（垂直布局，区别于 Callout 的图标左/内容右）。
+   图标复用 ::before + CSS mask 方案。语义卡片复用 Callout 的六套独立色板；
+   default 为中性白卡 + 灰色外链方框图标。
+   ========================================================================== */
+:is(.editor-content, .help-content) [data-card-type] {
+  position: relative;
+  padding: 52px 20px 16px;
+  border-radius: 12px;
+  border-width: 1px;
+  border-style: solid;
+  border-color: #e5e7eb;
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  margin-top: 8px;
+  margin-bottom: 8px;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+/* 卡片标题：比正文明显大一号的半粗字重，置于图标下方、正文之上 */
+:is(.editor-content, .help-content) [data-card-type] [data-card-title] {
+  font-weight: 600;
+  font-size: 1.3em;
+}
+
+/* 卡片描述（标题外的内容块）：比正文小一号，拉开与标题的层级 */
+:is(.editor-content, .help-content)
+  [data-card-type]
+  > [data-card-content]
+  > :not([data-card-title]) {
+  font-size: 1.1em;
+}
+
+/* 空标题不占位：发布页渲染的空 p[data-card-title] 隐藏
+  （编辑器内含 ProseMirror-trailingBreak 非 :empty，由占位符接管） */
+:is(.editor-content, .help-content) [data-card-type] [data-card-title]:empty {
+  display: none;
+}
+
+/* 类型图标：::before + mask（SVG data URI），颜色即图标色 */
+:is(.editor-content, .help-content) [data-card-type]::before {
+  content: '';
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  width: 24px;
+  height: 24px;
+  background-color: var(--card-icon-color, #9ca3af);
+  -webkit-mask-image: var(--card-icon);
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  -webkit-mask-position: center;
+  mask-image: var(--card-icon);
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  mask-position: center;
+}
+
+/* ---- default：中性白卡 + 外链方框图标 ---- */
+:is(.editor-content, .help-content) [data-card-type='default'] {
+  --card-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 3h6v6'/%3E%3Cpath d='M10 14 21 3'/%3E%3Cpath d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'/%3E%3C/svg%3E");
+}
+
+/* ---- info：蓝色系（Tailwind blue 50/200/600/800）---- */
+:is(.editor-content, .help-content) [data-card-type='info'] {
+  color: #1e40af;
+  background-color: #eff6ff;
+  border-color: #bfdbfe;
+  --card-icon-color: #2563eb;
+  --card-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 16v-4'/%3E%3Cpath d='M12 8h.01'/%3E%3C/svg%3E");
+}
+
+/* ---- note：紫色系（Tailwind violet 50/200/600/800）---- */
+:is(.editor-content, .help-content) [data-card-type='note'] {
+  color: #5b21b6;
+  background-color: #f5f3ff;
+  border-color: #ddd6fe;
+  --card-icon-color: #7c3aed;
+  --card-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 8v4'/%3E%3Cpath d='M12 16h.01'/%3E%3C/svg%3E");
+}
+
+/* ---- tip：青色系（Tailwind cyan 50/200/600/800）---- */
+:is(.editor-content, .help-content) [data-card-type='tip'] {
+  color: #155e75;
+  background-color: #ecfeff;
+  border-color: #a5f3fc;
+  --card-icon-color: #0891b2;
+  --card-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5'/%3E%3Cpath d='M9 18h6'/%3E%3Cpath d='M10 22h4'/%3E%3C/svg%3E");
+}
+
+/* ---- check：绿色系（Tailwind green 50/200/600/800）---- */
+:is(.editor-content, .help-content) [data-card-type='check'] {
+  color: #166534;
+  background-color: #f0fdf4;
+  border-color: #bbf7d0;
+  --card-icon-color: #16a34a;
+  --card-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+}
+
+/* ---- warning：黄色系（Tailwind amber 50/200/600/800）---- */
+:is(.editor-content, .help-content) [data-card-type='warning'] {
+  color: #92400e;
+  background-color: #fffbeb;
+  border-color: #fde68a;
+  --card-icon-color: #d97706;
+  --card-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3'/%3E%3Cpath d='M12 9v4'/%3E%3Cpath d='M12 17h.01'/%3E%3C/svg%3E");
+}
+
+/* ---- danger：红色系（Tailwind red 50/200/600/800）---- */
+:is(.editor-content, .help-content) [data-card-type='danger'] {
+  color: #991b1b;
+  background-color: #fef2f2;
+  border-color: #fecaca;
+  --card-icon-color: #dc2626;
+  --card-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7.86 2h8.28L22 7.86v8.28L16.14 22H7.86L2 16.14V7.86L7.86 2z'/%3E%3Cpath d='M12 8v4'/%3E%3Cpath d='M12 16h.01'/%3E%3C/svg%3E");
+}
+
+/* 容器内部子块间距收敛：首尾清除多余外边距，避免内边距 + 子块边距叠加。
+   正文实际渲染在 data-card-content 容器内（图标槽与容器并列，见 card.ts
+   renderHTML 的内容洞约束），首尾规则指向容器内的真实内容块；
+   旧规则保留兜底旧 HTML（无容器）场景。 */
+:is(.editor-content, .help-content) [data-card-type] > :first-child {
+  margin-top: 0;
+}
+
+:is(.editor-content, .help-content) [data-card-type] > :last-child {
+  margin-bottom: 0;
+}
+
+:is(.editor-content, .help-content) [data-card-type] > [data-card-content] > :first-child {
+  margin-top: 0;
+}
+
+:is(.editor-content, .help-content) [data-card-type] > [data-card-content] > :last-child {
+  margin-bottom: 0;
+}
+
+/* ============================================================================
+   9.6 Columns 分栏（columns > column）：2/3/4 栏并排布局
+   --------------------------------------------------------------------------
+   结构：div[data-columns] > div[data-column] × N。外层 flex 布局等分栏宽；
+   分栏是透明布局容器：内边距/圆角两端常驻（编辑/发布布局一致，hover
+   变背景不跳动），浅色背景仅在编辑态悬停时浮现（指示可编辑栏区），
+   浏览态（.help-content）任何情况都不显示背景。窄屏（发布页移动端）
+   自动堆叠为纵向。
+   ========================================================================== */
+:is(.editor-content, .help-content) [data-columns] {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+:is(.editor-content, .help-content) [data-column] {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 12px;
+  border-radius: 12px;
+}
+
+/* 浅色背景卡：仅编辑态悬停显示（浏览态无此规则，永不显示） */
+.editor-content [data-column]:hover {
+  background-color: rgba(115, 115, 115, 0.05);
+}
+
+/* 栏内子块间距收敛，保证多栏首行对齐 */
+:is(.editor-content, .help-content) [data-column] > :first-child {
+  margin-top: 0;
+}
+
+:is(.editor-content, .help-content) [data-column] > :last-child {
+  margin-bottom: 0;
+}
+
+/* 窄屏（发布页移动端）纵向堆叠 */
+@media (max-width: 640px) {
+  :is(.editor-content, .help-content) [data-columns] {
+    flex-direction: column;
+  }
+}
+
+/* ============================================================================
+   9.7 Steps 步骤条（steps > step）：编号徽章 + 标题 + 正文，浅灰圆角容器
+   --------------------------------------------------------------------------
+   结构：div[data-steps] > div[data-step] × N = span[data-step-badge]（数字由
+   CSS 计数器自动编号，增删/拖拽排序自动重排）+ div[data-step-body]（正文洞，
+   徽章槽与其并列是 PM 内容洞约束 —— 正文不能与兄弟节点同层，同 card 的
+   data-card-content 模式）> p[data-step-title] + 任意子块。
+   全部用后代选择器：编辑态 NodeView 会在容器与 step 之间多一层内容洞 div。
+   编辑态专属 chrome（「+」追加按钮 / ⠿ 拖拽手柄 / × 删除按钮）由 NodeView
+   组件渲染（.md-steps-add / .md-step-grip / .md-step-remove），仅
+   .editor-content 作用域生效，发布页静态渲染天然不含。
+   ========================================================================== */
+:is(.editor-content, .help-content) [data-steps] {
+  counter-reset: steps;
+  background: #f7f8fa;
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin: 12px 0;
+}
+
+:is(.editor-content, .help-content) [data-step] {
+  counter-increment: steps;
+  position: relative; /* 拖拽手柄/删除钮/连接线绝对定位的包含块 */
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+:is(.editor-content, .help-content) [data-step] + [data-step] {
+  margin-top: 24px;
+}
+
+/* 数字徽章：CSS 计数器自动编号，删步骤自动重排 */
+:is(.editor-content, .help-content) [data-step-badge] {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  background: #e8eaed;
+  color: #424549;
+  font-size: 13px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:is(.editor-content, .help-content) [data-step-badge]::before {
+  content: counter(steps);
+}
+
+/* 步骤间竖向连接线：从徽章下方延伸到下一徽章上缘（bottom 负值跨过步间距） */
+:is(.editor-content, .help-content) [data-step]:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 13px;
+  top: 34px;
+  bottom: -24px;
+  width: 1px;
+  background: #d8dadd;
+}
+
+/* 正文列：占据徽章右侧全部空间 */
+:is(.editor-content, .help-content) [data-step-body] {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* 标题行高与徽章对齐 */
+:is(.editor-content, .help-content) [data-step-title] {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 26px;
+}
+
+/* 正文首尾外边距收敛（同 callout/card 规则） */
+:is(.editor-content, .help-content) [data-step-body] > :first-child {
+  margin-top: 0;
+}
+
+:is(.editor-content, .help-content) [data-step-body] > :last-child {
+  margin-bottom: 0;
+}
+
+/* ---- 容器尾部「+」追加按钮（仅编辑态 NodeView 输出）----
+   与徽章列左对齐（内容区左缘即徽章列起点），常驻显示便于追加 */
+:is(.editor-content, .help-content) .md-steps-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin-top: 10px;
+  padding: 0;
+  border: none;
+  border-radius: 9999px;
+  background: #e8eaed;
+  color: #424549;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.editor-content .md-steps-add:hover {
+  background: #d8dadd;
+}
+
+/* ---- ⠿ 拖拽手柄 / × 删除按钮（仅编辑态 NodeView 输出，hover 步骤浮现）----
+   绝对定位悬于步骤两侧的容器内边距区（不占布局），按钮自身仍是 [data-step]
+   的子元素，hover 子元素即保持父级 hover 态 */
+:is(.editor-content, .help-content) .md-step-grip,
+:is(.editor-content, .help-content) .md-step-remove {
+  position: absolute;
+  top: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #9a9da2;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+
+:is(.editor-content, .help-content) .md-step-grip {
+  left: -26px;
+  cursor: grab;
+}
+
+:is(.editor-content, .help-content) .md-step-remove {
+  right: -26px;
+}
+
+.editor-content [data-step]:hover .md-step-grip,
+.editor-content [data-step]:hover .md-step-remove {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.editor-content [data-step] .md-step-grip:hover {
+  color: #424549;
+  background: rgba(115, 115, 115, 0.08);
+}
+
+.editor-content [data-step] .md-step-remove:hover {
+  color: #d5304d;
+  background: rgba(213, 48, 77, 0.08);
+}
+
+:is(.editor-content, .help-content) .md-step-grip svg,
+:is(.editor-content, .help-content) .md-step-remove svg,
+:is(.editor-content, .help-content) .md-steps-add svg {
+  display: block;
+}
+
+/* 拖拽进行中隐藏手柄视觉（draggable 手柄发起的拖拽同官方 data-dragging 语义） */
+.editor-content [data-step].ProseMirror-selectednode .md-step-grip {
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* ============================================================================
@@ -664,4 +1160,1158 @@
   :is(.editor-content, .help-content) ol {
     padding-left: 20px;
   }
+}
+
+/* ============================================================================
+   十一、内联图标（EditorIcon 节点，Huge Icons）
+   --------------------------------------------------------------------------
+   由 notion-editor 的 editorIcon 内联原子节点输出：
+   <span data-editor-icon data-color="…" data-icon|data-emoji>
+     <img src="data:image/svg+xml,…"> | emoji 字符
+   </span>
+   图标颜色烘焙在 data URI 的 SVG 里（stroke=具体色值），因此这里只有布局
+   与编辑态样式，不做配色；编辑器与服务端渲染的公开站共用本节。
+   ========================================================================== */
+:is(.editor-content, .help-content) [data-editor-icon] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: -0.22em;
+  border-radius: 0.25em;
+  line-height: 1;
+  user-select: none;
+}
+
+:is(.editor-content, .help-content) [data-editor-icon] img {
+  display: block;
+  width: 1em;
+  height: 1em;
+}
+
+/* emoji 模式：字符稍大于 svg，保证视觉平衡。
+   vertical-align 必须归零：emoji 字形在 line-height:1 的行内盒内因字体
+   metrics 本身偏下，再叠加图标模式的 -0.22em 下沉会双重下沉（实测比
+   相邻文字中心低 ~4px）；基线锚定后字形中心恰与 CJK 文字中心对齐。 */
+:is(.editor-content, .help-content) [data-editor-icon][data-emoji] {
+  width: auto;
+  height: 1.2em;
+  font-size: 1.05em;
+  vertical-align: 0;
+}
+
+/* ---- 编辑态交互反馈（仅编辑器，公开站无此状态） ---- */
+.editor-content .ProseMirror-selectednode[data-editor-icon] {
+  background: rgba(35, 131, 226, 0.12);
+}
+
+/* ============================================================================
+   十二、Card 属性扩展（horizontal / url / 自定义图标）
+   --------------------------------------------------------------------------
+   由 card 节点的 horizontal / url / iconName / iconElements / iconEmoji
+   属性驱动（card-settings.vue 卡片属性弹层写入）。自定义图标复用
+   EditorIcon 的「图元存 attrs → renderHTML 静态 spec」方案，编辑器与
+   发布页同构；表情图标存 data-emoji 字符（文本子节点渲染）。
+   ========================================================================== */
+
+/* 自定义图标槽：占据与 ::before 类型图标相同的位置，配置后隐藏 ::before */
+:is(.editor-content, .help-content) [data-card-type] > [data-card-icon] {
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  width: 24px;
+  height: 24px;
+  color: var(--card-icon-color, #9ca3af);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+:is(.editor-content, .help-content) [data-card-type] > [data-card-icon] svg {
+  width: 100%;
+  height: 100%;
+}
+/* 表情图标：字符文本适配 24px 槽位 */
+:is(.editor-content, .help-content) [data-card-type] > [data-card-icon][data-emoji] {
+  font-size: 18px;
+  line-height: 1;
+}
+:is(.editor-content, .help-content) [data-card-type][data-has-icon]::before {
+  display: none;
+}
+
+/* 横向紧凑布局：grid 双列（图标一列 / 标题+描述一列），padding 收紧 */
+:is(.editor-content, .help-content) [data-card-type][data-horizontal='true'] {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 10px;
+  align-items: start;
+  padding: 16px 20px;
+}
+:is(.editor-content, .help-content) [data-card-type][data-horizontal='true']::before,
+:is(.editor-content, .help-content) [data-card-type][data-horizontal='true'] > [data-card-icon] {
+  position: static;
+  grid-row: 1;
+  grid-column: 1;
+}
+/* 标题/描述等全部内容排在图标右侧一列：正文容器是唯一内容列（grid 项
+   min-width: 0 防长文本撑破网格） */
+:is(.editor-content, .help-content)
+  [data-card-type][data-horizontal='true']
+  > :not([data-card-icon]) {
+  grid-column: 2;
+}
+:is(.editor-content, .help-content) [data-card-type][data-horizontal='true'] > [data-card-content] {
+  min-width: 0;
+}
+
+/* URL 卡片：发布页整卡可点（编辑态覆盖为文本光标，便于编辑） */
+:is(.editor-content, .help-content) a[data-card-type][data-card-url] {
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+}
+:is(.editor-content, .help-content) a[data-card-type][data-card-url]:hover {
+  border-color: #c9cdd4;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.editor-content [data-card-type][data-card-url] {
+  cursor: text;
+}
+
+/* ============================================================================
+   十三、Prompt 提示词块
+   --------------------------------------------------------------------------
+   由 prompt 节点（含 promptDesc / promptInstr 两个子节点）驱动的卡片，
+   设计稿（2026-10-20 定稿）：单列两段 —— ① 描述输入行（行首图标 chip，
+   多行纯文本，回车换行，空态占位「添加提示词描述」）② 带边框的等宽指令输入盒
+   （空态占位「详细提示词」）。无标签行、无操作按钮、无配置开关。
+   chip 固定 Sparkles 四角星（纯语义标识，不可点击、无 icon 属性——旧版
+   ai/plus 点击切换已删除）；编辑态另有复制按钮（prompt-block.vue 渲染，
+   本文件负责显隐与定位），服务端 / 发布页不含。
+
+   结构（renderHTML 产出，编辑态 DOMSerializer / 服务端 static-renderer /
+   发布页 contentHtml 三端一致；主编辑器由 prompt-block.vue 渲染同构 DOM）：
+   [data-prompt] 卡片
+     ├ .md-prompt-chip   图标（静态元素，contenteditable=false，不进
+     │                   contentDOM；固定 Sparkles 内联 SVG）
+     ├ .md-prompt-main  内容列（内容洞）
+     │   ├ .md-prompt-desc   描述行（空态占位为伪元素）
+     │   └ pre.md-prompt-instr > code   边框输入盒为 code
+     └ .md-prompt-copy   复制按钮（仅编辑态 NodeView 输出，锚定指令盒
+                         右下角，hover 卡片浮现）
+   chip 是真实元素（伪元素收不到点击）；占位仍为伪元素 —— 二者均不进入
+   ProseMirror 的 contentDOM（不会被重绘清掉），也不会在 HTML 往返时被
+   误解析为正文文本。
+   ========================================================================== */
+
+/* ---- 卡片容器：单列，白底边框卡 ---- */
+:is(.editor-content, .help-content) .md-prompt {
+  position: relative; /* 图标 chip 绝对定位的包含块 */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 1.25em 0;
+  padding: 12px;
+  border: 1px solid var(--md-color-border);
+  border-radius: 12px;
+  background-color: #fafafa;
+}
+
+/* ---- 内容列：描述行与指令区纵向排列 ---- */
+:is(.editor-content, .help-content) .md-prompt .md-prompt-main {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* ---- 描述行：带边框的输入行。行首图标 chip 为卡片输出的静态元素（绝对
+      定位不在行内流 —— 行内元素会把空态光标挤到盒子最左侧）；padding-left
+      给 chip 让位，光标/文字/占位都从 chip 右侧开始。此元素是 contentDOM，
+      禁用 flex 布局 ---- */
+:is(.editor-content, .help-content) .md-prompt .md-prompt-desc {
+  position: relative; /* 空态占位 ::after 的定位包含块 */
+  min-height: 38px;
+  padding: 7px 12px 7px 84px; /* 左 = 12px 内边距 + 4px chip 缩进 + 22px chip + 10px 间距 */
+  border: 1px solid var(--md-color-border);
+  border-radius: 10px;
+  background-color: #fff;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--md-color-text-secondary);
+  /* 多行形态：回车插入 <br> 换行、长文本自动软换行撑高（textarea 语义）；
+     超长连续 token（URL 等）折行防横向溢出 */
+  word-break: break-word;
+}
+/* ---- 图标 chip：与描述首行齐平的图标标识（固定 Sparkles，不可点击） ----
+   renderHTML / prompt-block.vue 输出的静态元素（contenteditable=false，
+   不进 contentDOM）；旧版「点击切换图标」交互已删，无事件绑定。
+   图标为内联 SVG 子元素（stroke=currentColor，颜色由下方 color 上色）。
+   z-index:1 是图标可见的关键：描述行同为定位元素且 DOM 顺序靠后，同层下
+   其白底会把 chip 整个盖住（图标、边框全部失效——此前两轮
+   「伪元素 / background-image computed 正常却不绘制」的怪癖实为同一根因，
+   静态探针页没有描述行盖着所以一直正常），抬层后 chip 悬于描述行之上。 */
+:is(.editor-content, .help-content) .md-prompt .md-prompt-chip {
+  position: absolute;
+  left: 20px; /* 描述盒左缘（12px）再缩进 4px，chip 不压在描述盒边框上 */
+  top: 20px; /* 12px 卡片内边距 + 7px 描述行内边距，与描述首行对齐 */
+  z-index: 1; /* 描述行是靠后的定位元素，同层会盖住 chip，必须抬层 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+    font-weight: 500;
+    font-size: 13px;
+  width: 72px;
+  height: 22px;
+  border: 1px solid var(--md-color-border);
+  border-radius: 6px;
+  background-color: var(--md-color-code-bg);
+  color: var(--md-color-text-tertiary); /* SVG stroke=currentColor 上色 */
+}
+/* 内联 SVG：12px 居中（flex 已居中），block 消除行内基线空隙 */
+:is(.editor-content, .help-content) .md-prompt .md-prompt-chip svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+    margin-right: 4px;
+}
+/* ---- 复制按钮：复制指令区文本（仅编辑态 NodeView 输出） ----
+   与左上 chip 对称锚定卡片右上（top:20px 与 chip 同排，垂直中心 ≈ 描述
+   首行中心），hover 卡片浮现。 */
+:is(.editor-content, .help-content) .md-prompt .md-prompt-copy {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 1; /* 同 chip：盖过靠后的定位元素（指令盒 code 相对定位） */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--md-color-border);
+  border-radius: 6px;
+  background-color: #fff;
+  color: var(--md-color-text-tertiary);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+.editor-content .md-prompt:hover .md-prompt-copy {
+  opacity: 1;
+  pointer-events: auto;
+}
+.editor-content .md-prompt .md-prompt-copy:hover {
+  color: var(--md-color-text-secondary);
+  border-color: var(--md-color-border-strong);
+}
+:is(.editor-content, .help-content) .md-prompt .md-prompt-copy svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+
+/* ---- 浏览态变体（md-prompt--view）：卡片样式与编辑模式一致，仅指令盒不同 ----
+   发布页（contentHtml 静态渲染）与只读编辑器实例（web 编辑/预览切换、AI
+   预览、guest 访客）共用。卡片不改变基础结构（灰底卡 + 白色描述盒 + 左上
+   chip），指令盒（promptInstr）display:none 隐藏但保留在 DOM —— 是复制按钮
+   的复制源（textContent），发布页事件委托 / 组件点击都取它；展开时回到卡片
+   内部流内（见下方 md-prompt--expanded）。 */
+:is(.editor-content, .help-content) .md-prompt--view .md-prompt-instr {
+  display: none;
+}
+:is(.editor-content, .help-content) .md-prompt--view .md-prompt-desc:empty::after,
+:is(.editor-content, .help-content) .md-prompt--view .md-prompt-desc.is-empty::after {
+  content: none;
+}
+/* 描述行右侧让位：给右上角按钮组留白，防长文本压到按钮下面
+   （圆钮 32px + 间距 8px + 方钮 32px = 88px，取 96px） */
+:is(.editor-content, .help-content) .md-prompt--view .md-prompt-desc {
+  padding-right: 96px;
+}
+/* 复制方钮 / 展开圆钮：absolute 锚定卡片右上、与描述行首行垂直对齐
+   （描述盒 top 12px + min-height 38px → 中心 31px，按钮高 32px → top 15px；
+   圆钮贴右缘，方钮在其左 right = 16 + 32 + 8 = 56），尺寸与 flex 居中由
+   基础按钮规则提供 */
+:is(.editor-content, .help-content) .md-prompt--view .md-prompt-copy-btn {
+  position: absolute;
+  top: 15px;
+  right: 30px;
+  z-index: 1;
+}
+:is(.editor-content, .help-content) .md-prompt--view .md-prompt-toggle-btn {
+  position: absolute;
+  top: 15px;
+  right: 16px;
+  z-index: 1;
+}
+/* 复制按钮：白底边框 icon 方钮（Copy01，复制成功切 Check），浏览态常显 */
+:is(.editor-content, .help-content) .md-prompt .md-prompt-copy-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 33px;
+  padding: 0;
+   margin-right: 6px;
+  color: var(--md-color-text-secondary);
+  cursor: pointer;
+}
+:is(.editor-content, .help-content) .md-prompt .md-prompt-copy-btn:hover {
+  border-color: var(--md-color-border-strong);
+  color: var(--md-color-text);
+}
+:is(.editor-content, .help-content) .md-prompt .md-prompt-copy-btn svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+/* 复制成功反馈：copy 图标切 check（web 组件切 copied 状态渲染对应图标，
+   发布页委托切 is-copied class 控制两枚 svg 显隐），1.5s 复原 */
+:is(.editor-content, .help-content) .md-prompt .md-prompt-copy-btn .md-prompt-check-icon {
+  display: none;
+}
+:is(.editor-content, .help-content) .md-prompt .md-prompt-copy-btn.is-copied .md-prompt-copy-icon {
+  display: none;
+}
+:is(.editor-content, .help-content) .md-prompt .md-prompt-copy-btn.is-copied .md-prompt-check-icon {
+  display: block;
+}
+/* 「展开」按钮：同高的圆形箭头钮，点击显示详细提示词 */
+:is(.editor-content, .help-content) .md-prompt .md-prompt-toggle-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 34px;
+  padding: 0;
+  color: var(--md-color-text-secondary);
+  cursor: pointer;
+}
+:is(.editor-content, .help-content) .md-prompt .md-prompt-toggle-btn:hover {
+  border-color: var(--md-color-border-strong);
+  color: var(--md-color-text);
+}
+:is(.editor-content, .help-content) .md-prompt .md-prompt-toggle-btn svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+  /* 箭头方向语义：收起态向左‹（chevron-down 顺时针转 90°） */
+  transform: rotate(90deg);
+  transition: transform 0.15s ease;
+}
+/* 展开态：箭头向下∨（图标原方向） */
+:is(.editor-content, .help-content) .md-prompt--expanded .md-prompt-toggle-btn svg {
+  transform: rotate(0deg);
+}
+/* ---- 浏览态展开（md-prompt--expanded）：指令盒回到卡片内部流内 ----
+   与编辑模式同位同款（描述盒下方、白色边框 code 盒），仅默认隐藏 →
+   展开显示；超长限高 200px 在 code 盒内滚动（盒边框静止，内容滚动）。 */
+:is(.editor-content, .help-content) .md-prompt--view.md-prompt--expanded .md-prompt-instr {
+  display: block;
+}
+:is(.editor-content, .help-content) .md-prompt--view.md-prompt--expanded .md-prompt-instr code {
+  max-height: 200px;
+  overflow-y: auto;
+  /* 滚动条统一 shadcn 外观：标准属性（Firefox/新 Chrome/Safari），
+     webkit 伪元素兜底旧 Safari/WKWebView（见 14.1a 双路径结论） */
+  scrollbar-width: thin;
+  scrollbar-color: var(--md-color-border-strong) transparent;
+}
+:is(.editor-content, .help-content) .md-prompt--view.md-prompt--expanded .md-prompt-instr code::-webkit-scrollbar {
+  width: 8px;
+}
+:is(.editor-content, .help-content) .md-prompt--view.md-prompt--expanded .md-prompt-instr code::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-color: var(--md-color-border-strong);
+  background-clip: padding-box;
+}
+/* ---- 指令区：pre 仅作载体，带边框输入盒为内层 code ---- */
+:is(.editor-content, .help-content) .md-prompt .md-prompt-instr {
+  margin: 0;
+  background: none;
+  padding: 0;
+  border: none;
+  font-family: var(--md-font-mono);
+  font-size: 13px;
+}
+:is(.editor-content, .help-content) .md-prompt .md-prompt-instr code {
+  position: relative; /* 空态占位 ::before 的定位包含块 */
+  display: block;
+  min-height: 64px;
+  padding: 10px 12px;
+  border: 1px solid var(--md-color-border);
+  border-radius: 10px;
+  background-color: #fff;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: 1.7;
+  color: var(--md-color-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ---- 空态占位（编辑态 Placeholder 装饰与发布态 :empty 共用一套文案） ---- */
+/* 描述空态：占位文案走 ::after（::before 已被 + 号 chip 占用），绝对定位到
+   chip 右侧同一行。空态保留 ProseMirror 给空文本块补的 <br> 作为光标行盒
+   —— chip 改绝对定位后已不在行内流里，<br> 只产生一个行盒（行高不涨），
+   隐藏它反而会让光标失去落点、画到盒子最左侧。 */
+:is(.editor-content, .help-content) .md-prompt .md-prompt-desc:empty::after,
+:is(.editor-content, .help-content) .md-prompt .md-prompt-desc.is-empty::after {
+  content: '添加提示词描述';
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  left: 86px; /* 12px 内边距 + 4px chip 缩进 + 22px chip + 10px 间距 */
+  right: 12px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--md-color-text-disabled);
+  pointer-events: none;
+}
+/* 指令空态：占位文案渲染在输入盒（code）内部 —— 绝对定位脱离行内流，
+   空态光标落在内容起点（占位文字之前），对齐原生 textarea 占位行为；
+   若留在行内流里，光标（offset 0）会画在占位文案末尾。 */
+:is(.editor-content, .help-content) .md-prompt .md-prompt-instr.is-empty code::before,
+:is(.editor-content, .help-content) .md-prompt .md-prompt-instr code:empty::before {
+  content: '详细提示词';
+  position: absolute;
+  top: 10px; /* 与 code 的 padding-top 对齐，占位首行与正文首行同位 */
+  left: 12px;
+  right: 12px;
+  color: var(--md-color-text-disabled);
+  pointer-events: none;
+}
+
+/* ============================================================================
+   十四、代码块增强（增强 CodeBlock 节点，Nuxt Content 风格）
+   --------------------------------------------------------------------------
+   适用范围：仅带 data-code-block 标记的 pre（增强版代码块 renderHTML 输出）。
+   旧版渲染的 contentHtml（无标记）与 PromptInstr 指令盒（pre.md-prompt-instr）
+   不命中任何本章节规则，保持五、代码 章节的朴素样式 —— 旧文档在下次保存
+   重新渲染 contentHtml 后自动升级。
+
+   DOM 结构（两态不同源）：
+   - 发布态（contentHtml，服务端 code-html-enhancer.ts 产出）：
+     pre[data-code-block] > .code-block-scroll > code
+     + .code-copy 按钮（钉在 pre 上，行为由 pages 端 code-block.client.ts
+       事件委托激活）；标题条与语言徽标由本文件伪元素按 data-filename /
+       data-language 渲染（任一非空即出条，徽标钉在条内右上）
+   - 编辑态（NodeView，pre[data-node-view-wrapper]）：pre 为 flex 列，标题条
+     （filename 输入 / 语言 pill / 复制）与滚动区（.code-block-area）由组件
+     渲染，样式见 code-block-nodeview.vue 的 scoped 样式；本文件只负责 pre
+     骨架与 hljs 主题。
+
+   滚动分层：横向滚动收敛在内层滚动容器（发布态 .code-block-scroll / 编辑态
+   .code-block-area），pre 本体 overflow:hidden 裁圆角 —— 复制按钮、语言徽标、
+   filename 条等 chrome 钉在 pre 上不随内容滚动。
+   ========================================================================== */
+
+/* ---- 14.1 骨架：flex 列 + 圆角裁剪，滚动交给内层 ---- */
+:is(.editor-content, .help-content) pre[data-code-block] {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fafafa;
+  border: 1px solid var(--md-color-border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin: 10px 0;
+}
+
+/* 滚动层（发布态）：横向滚动容器；高度下限/上限与编辑态 .code-block-area
+   一致（min 3 行 / max 20 行），超高纵向滚动（行号 counter 随行滚动，对齐不破） */
+:is(.editor-content, .help-content) pre[data-code-block] .code-block-scroll {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 20px; /* 1 行 */
+  max-height: 400px; /* 20 行 */
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+/* 代码本体（发布态）：块级撑满滚动层，默认不换行 */
+:is(.editor-content, .help-content) pre[data-code-block] .code-block-scroll code {
+  display: block;
+  white-space: pre;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+/* ---- 14.1a 代码块滚动条：shadcn-vue ScrollArea 默认外观 ----
+   三个横向滚动容器统一（编辑态 NodeView .code-block-area / 发布态
+   .code-block-scroll / 旧版裸 pre），样式对齐 shadcn-vue ScrollBar.vue：
+   透明轨道 + bg-border（zinc-200）圆角细滑块。
+   不用 reka ScrollArea 组件包裹 PM contentDOM（NodeView 内 reka 组件有
+   崩溃先例，且 viewport 的 display:table 包裹层会破坏 sticky 行号 gutter）。
+   标准属性 scrollbar-width/color（Firefox 与新 Chrome/Safari）与
+   ::-webkit-scrollbar（旧 Safari/WKWebView 兜底）双路径：现代浏览器优先
+   标准属性后自动忽略 webkit 伪元素，老浏览器反之，互不冲突。
+
+   路径取舍（2026-10-22）：滑块「贴边」问题需要滑块内衬（离边间距），标准
+   路径不可定制 —— 因此标准属性只留给 Firefox（@supports(-moz-appearance:none)
+   是 Firefox-only 惯用法，Chrome 不命中），Chrome/Safari（含新 Safari、老
+   WKWebView）统一走下方 webkit 自定义，滑块内衬/配色完全可控。 */
+@supports (-moz-appearance: none) {
+  :is(.editor-content, .help-content) pre,
+  :is(.editor-content, .help-content) pre[data-code-block] .code-block-scroll,
+  :is(.editor-content, .help-content) pre[data-code-block] .code-block-area {
+    scrollbar-width: thin;
+    scrollbar-color: var(--cb-thumb, #e4e4e7) transparent;
+  }
+}
+
+:is(.editor-content, .help-content) pre::-webkit-scrollbar,
+:is(.editor-content, .help-content) pre[data-code-block] .code-block-scroll::-webkit-scrollbar,
+:is(.editor-content, .help-content) pre[data-code-block] .code-block-area::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+:is(.editor-content, .help-content) pre::-webkit-scrollbar-track,
+:is(.editor-content, .help-content) pre[data-code-block] .code-block-scroll::-webkit-scrollbar-track,
+:is(.editor-content, .help-content) pre[data-code-block] .code-block-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 滑块：3px 透明边框 + background-clip 留出内衬 —— 可见胶囊 6px、距容器
+   边缘 3px（纵向离右缘/横向离底缘，贴边观感局促），近似 macOS 原生 overlay
+   滑块的悬浮感；圆角胶囊。颜色走 --cb-thumb（14.7 主题定义；无主题回退 zinc-200） */
+:is(.editor-content, .help-content) pre::-webkit-scrollbar-thumb,
+:is(.editor-content, .help-content) pre[data-code-block] .code-block-scroll::-webkit-scrollbar-thumb,
+:is(.editor-content, .help-content) pre[data-code-block] .code-block-area::-webkit-scrollbar-thumb {
+  background: var(--cb-thumb, #e4e4e7);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  border-radius: 9999px;
+}
+
+/* ---- 14.2 filename 通栏灰色标题条（发布态：伪元素；编辑态由 NodeView 渲染） ----
+   filename / language 任一非空即出条（仅设语言的块左侧留空，徽标在右上）。
+   负边距横跨 pre 内边距贴到边缘（与编辑态 .code-filename-bar 同构），
+   顶角随 pre 圆角被 overflow:hidden 裁掉；14.3 的语言徽标与 14.4 的复制按钮
+   钉在条内右上。
+   :not([data-node-view-wrapper])：编辑器 NodeView 的 pre 同样带 data-code-block/
+   data-filename 且在 .editor-content 作用域内，不排除的话伪元素会作为 flex 项
+   插进 NodeView，把组件标题条顶下来（实测偏移 38px）。 */
+:is(.editor-content, .help-content)
+  pre[data-code-block]:not([data-node-view-wrapper]):is([data-filename], [data-language])::before {
+  content: attr(data-filename);
+  display: block;
+  flex: none;
+  font-family: var(--md-font-mono);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--md-color-text-tertiary);
+  background: rgb(244 244 245);
+  border-bottom: 1px solid var(--md-color-border);
+  margin: -12px -16px 10px;
+  padding: 8px 16px;
+  white-space: pre-wrap;
+}
+
+/* ---- 14.3 语言徽标（发布态标题条内右上；编辑态有自己的 pill，排除 NodeView） ----
+   right 60px 给 14.4 的复制按钮（right 8px）与全屏按钮（right 34px）让位；
+   top 6px 与两按钮同轴线（33px 高标题条内 20px 元素居中） */
+:is(.editor-content, .help-content)
+  pre[data-code-block]:not([data-node-view-wrapper])[data-language]::after {
+  content: attr(data-language);
+  position: absolute;
+  top: 6px;
+  right: 60px;
+  font-family: var(--md-font-mono);
+  font-size: 11px;
+  line-height: 14px;
+  color: var(--md-color-text-tertiary);
+  background: rgba(115, 115, 115, 0.08);
+  padding: 3px 9px;
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+/* ---- 14.4 复制按钮（发布态：常显，与编辑态标题条 chrome 一致；is-copied 由 pages 端脚本切换） ----
+   ghost 无边框 chrome，与编辑态 NodeView 的 .code-bar-copy 同规格：
+   20×20 透明底、hover 淡圆底、图标 12px（编辑态 Copy/Check :size=12 同源）；
+   top 6px 在 33px 高标题条内垂直居中 */
+:is(.editor-content, .help-content) pre[data-code-block] .code-copy {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--md-color-text-tertiary);
+  cursor: pointer;
+  transition: var(--md-transition);
+}
+
+:is(.editor-content, .help-content) pre[data-code-block] .code-copy:hover {
+  color: var(--md-color-text);
+  background: var(--cb-pill-hover, rgba(0, 0, 0, 0.05));
+}
+
+:is(.editor-content, .help-content) pre[data-code-block] .code-copy svg {
+  width: 12px;
+  height: 12px;
+}
+
+:is(.editor-content, .help-content) pre[data-code-block] .code-copy .i-check {
+  display: none;
+  color: #16a34a;
+}
+
+:is(.editor-content, .help-content) pre[data-code-block] .code-copy.is-copied .i-copy {
+  display: none;
+}
+
+:is(.editor-content, .help-content) pre[data-code-block] .code-copy.is-copied .i-check {
+  display: block;
+}
+
+/* ---- 14.4b 全屏按钮与全屏态（编辑态 NodeView / 发布态脚本切 pre.is-fullscreen，
+       两端同构；发布态常显与复制按钮同款，点击行为 pages 端委托） ----
+   ghost 同规格对齐：20×20 透明底、hover 淡圆底、图标 14px（编辑态 size-3.5 同源）；
+   right 34px = 复制按钮 8 + 宽 20 + 间距 6 */
+:is(.editor-content, .help-content) pre[data-code-block] .code-fullscreen {
+  position: absolute;
+  top: 6px;
+  right: 34px;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--md-color-text-tertiary);
+  cursor: pointer;
+  transition: var(--md-transition);
+}
+
+:is(.editor-content, .help-content) pre[data-code-block] .code-fullscreen:hover {
+  color: var(--md-color-text);
+  background: var(--cb-pill-hover, rgba(0, 0, 0, 0.05));
+}
+
+:is(.editor-content, .help-content) pre[data-code-block] .code-fullscreen svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* 图标切换：展开（默认）⇄ 收起（全屏中） */
+:is(.editor-content, .help-content) pre[data-code-block] .code-fullscreen .i-collapse {
+  display: none;
+}
+
+:is(.editor-content, .help-content) pre[data-code-block].is-fullscreen .code-fullscreen .i-expand {
+  display: none;
+}
+
+:is(.editor-content, .help-content) pre[data-code-block].is-fullscreen .code-fullscreen .i-collapse {
+  display: block;
+}
+
+/* 全屏态：fixed 覆盖视口（留 16px 边距），滚动层解除高度上限撑满剩余空间 */
+:is(.editor-content, .help-content) pre[data-code-block].is-fullscreen {
+  position: fixed;
+  inset: 16px;
+  z-index: 9999;
+  margin: 0;
+  max-height: none;
+  box-shadow: 0 24px 60px rgb(0 0 0 / 0.25);
+}
+
+:is(.editor-content, .help-content) pre[data-code-block].is-fullscreen .code-block-scroll,
+:is(.editor-content, .help-content) pre[data-code-block].is-fullscreen .code-block-area {
+  max-height: none;
+}
+
+/* ---- 14.4 左侧行号（发布态：CSS counter + span.line 拆行，编辑态由 NodeView
+       gutter 渲染；行号常显，非设置项） ----
+   与编辑态同构：gutter sticky 钉在滚动区左缘，负外边距挪进 code 的 padding 区，
+   净占位宽 32 - 44 + 12 = 0，不挤压正文 */
+:is(.editor-content, .help-content) pre[data-code-block] .code-block-scroll code {
+  counter-reset: line;
+  padding-left: 44px;
+}
+
+:is(.editor-content, .help-content) pre[data-code-block] .code-block-scroll code > span.line {
+  display: block;
+}
+
+:is(.editor-content, .help-content)
+  pre[data-code-block]
+  .code-block-scroll
+  code
+  > span.line::before {
+  counter-increment: line;
+  content: counter(line);
+  position: sticky;
+  left: 0;
+  display: inline-block;
+  width: 32px;
+  margin-left: -44px;
+  margin-right: 12px;
+  text-align: right;
+  color: var(--md-color-text-disabled);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+/* ---- 14.5 编辑态差异：chrome 由 NodeView 组件渲染，伪元素徽标关闭避免重复 ---- */
+.editor-content pre[data-node-view-wrapper]::before,
+.editor-content pre[data-node-view-wrapper]::after {
+  content: none;
+}
+
+/* ---- 14.6 语法高亮主题（hljs 令牌，github-light 风格） ----
+   编辑器内 CodeBlockLowlight 以 inline Decoration 打同名类，两端共用。 */
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-comment,
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-quote {
+  color: #6a737d;
+  font-style: italic;
+}
+
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-keyword,
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-selector-tag,
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-literal,
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-doctag,
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-name {
+  color: #d73a49;
+}
+
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-string,
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-regexp,
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-addition {
+  color: #032f62;
+}
+
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-number,
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-built_in,
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-type,
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-params {
+  color: #005cc5;
+}
+
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-title,
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-title.function_,
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-title.class_ {
+  color: #6f42c1;
+}
+
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-attr,
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-attribute,
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-variable,
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-template-variable,
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-property {
+  color: #e36209;
+}
+
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-section,
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-selector-id,
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-selector-class {
+  color: #22863a;
+}
+
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-meta,
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-symbol,
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-bullet,
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-link {
+  color: #735c0f;
+}
+
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-deletion {
+  color: #b31d28;
+  background: #ffeef0;
+}
+
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-emphasis {
+  font-style: italic;
+}
+
+:is(.editor-content, .help-content) pre[data-code-block] .hljs-strong {
+  font-weight: 600;
+}
+
+/* ============================================================================
+   十四.7 高亮主题（精选 4 个特色主题 + Default）
+   --------------------------------------------------------------------------
+   主题锚点：pre[data-code-theme]（扩展 theme attr 序列化，null = Default 不出
+   attr，亮色零变化）。选择主题的块在此定义 --cb-* 变量，骨架 / 标题条伪元素 /
+   复制按钮 / 行号 / 滚动条滑块经 [data-code-theme] 守卫的覆盖规则取变量；
+   编辑态 NodeView 的 chrome（.code-filename-bar / pill / gutter 等）在组件
+   scoped 样式里消费同名变量（无主题回退亮色原值）——一份变量两端通用。
+   token 色按 14.6 的分组逐主题覆写（同选择器结构，后者胜出）。
+
+   变量清单：--cb-bg 骨架底 / --cb-border 骨架边框 / --cb-fg 代码正文 /
+   --cb-chrome 标题条底 / --cb-chrome-border 标题条分隔线 / --cb-chrome-fg
+   标题条文字 / --cb-faint 徽标底 / --cb-pill-bg|--cb-pill-border|--cb-pill-hover
+   |--cb-pill-focus-border pill 四态 / --cb-gutter-fg 行号 / --cb-thumb 滚动条滑块
+   ========================================================================== */
+
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] {
+  --cb-bg: #0d1117;
+  --cb-border: #303640;
+  --cb-fg: #c9d1d9;
+  --cb-chrome: #161b22;
+  --cb-chrome-border: #303640;
+  --cb-chrome-fg: #8b949e;
+  --cb-faint: rgba(240, 246, 252, 0.1);
+  --cb-pill-bg: rgba(240, 246, 252, 0.08);
+  --cb-pill-border: rgba(240, 246, 252, 0.15);
+  --cb-pill-hover: rgba(240, 246, 252, 0.12);
+  --cb-pill-focus-border: rgba(240, 246, 252, 0.3);
+  --cb-gutter-fg: #6e7681;
+  --cb-thumb: rgba(240, 246, 252, 0.18);
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] {
+  --cb-bg: #282c34;
+  --cb-border: #3e4451;
+  --cb-fg: #abb2bf;
+  --cb-chrome: #2c313a;
+  --cb-chrome-border: #3e4451;
+  --cb-chrome-fg: #9da5b4;
+  --cb-faint: rgba(171, 178, 191, 0.1);
+  --cb-pill-bg: rgba(171, 178, 191, 0.08);
+  --cb-pill-border: rgba(171, 178, 191, 0.2);
+  --cb-pill-hover: rgba(171, 178, 191, 0.14);
+  --cb-pill-focus-border: rgba(171, 178, 191, 0.35);
+  --cb-gutter-fg: #5c6370;
+  --cb-thumb: rgba(171, 178, 191, 0.25);
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] {
+  --cb-bg: #272822;
+  --cb-border: #49483e;
+  --cb-fg: #f8f8f2;
+  --cb-chrome: #3e3d32;
+  --cb-chrome-border: #49483e;
+  --cb-chrome-fg: #a6a48a;
+  --cb-faint: rgba(248, 248, 242, 0.1);
+  --cb-pill-bg: rgba(248, 248, 242, 0.08);
+  --cb-pill-border: rgba(248, 248, 242, 0.2);
+  --cb-pill-hover: rgba(248, 248, 242, 0.14);
+  --cb-pill-focus-border: rgba(248, 248, 242, 0.35);
+  --cb-gutter-fg: #8f9080;
+  --cb-thumb: rgba(248, 248, 242, 0.25);
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] {
+  --cb-bg: #282a36;
+  --cb-border: #44475a;
+  --cb-fg: #f8f8f2;
+  --cb-chrome: #343746;
+  --cb-chrome-border: #44475a;
+  --cb-chrome-fg: #a3a7c2;
+  --cb-faint: rgba(248, 248, 242, 0.1);
+  --cb-pill-bg: rgba(248, 248, 242, 0.08);
+  --cb-pill-border: rgba(248, 248, 242, 0.2);
+  --cb-pill-hover: rgba(248, 248, 242, 0.14);
+  --cb-pill-focus-border: rgba(248, 248, 242, 0.35);
+  --cb-gutter-fg: #6272a4;
+  --cb-thumb: rgba(248, 248, 242, 0.25);
+}
+
+/* ---- 骨架与 chrome 覆盖（[data-code-theme] 守卫，仅主题块命中；
+       与既有规则同特异性，靠书写顺序在后面取胜） ---- */
+
+:is(.editor-content, .help-content) pre[data-code-theme] {
+  background: var(--cb-bg);
+  border-color: var(--cb-border);
+  color: var(--cb-fg);
+}
+
+/* 代码正文色：5.1 行内代码规则给 code 显式设了 color（暗色正文），压过从 pre
+   继承的 --cb-fg —— 主题块未染色文本（无 hljs token 的普通文本）会暗字配暗底
+   不可见。这里按 data-code-block 范围重设：主题块随 --cb-fg，无主题回退原正文色 */
+:is(.editor-content, .help-content) pre[data-code-block] code {
+  color: var(--cb-fg, var(--md-color-text));
+}
+
+/* 发布态标题条（::before）与语言徽标（::after） */
+:is(.editor-content, .help-content)
+  pre[data-code-theme]:not([data-node-view-wrapper]):is([data-filename], [data-language])::before {
+  color: var(--cb-chrome-fg);
+  background: var(--cb-chrome);
+  border-bottom-color: var(--cb-chrome-border);
+}
+
+:is(.editor-content, .help-content)
+  pre[data-code-theme]:not([data-node-view-wrapper])[data-language]::after {
+  color: var(--cb-chrome-fg);
+  background: var(--cb-faint);
+}
+
+/* 发布态 chrome 按钮（复制 / 全屏）：ghost 无边框，仅重着色图标与 hover 底，
+   与编辑态 .code-bar-copy 在主题块下的表现同构 */
+:is(.editor-content, .help-content) pre[data-code-theme] .code-copy,
+:is(.editor-content, .help-content) pre[data-code-theme] .code-fullscreen {
+  background: transparent;
+  border: none;
+  color: var(--cb-chrome-fg);
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme] .code-copy:hover,
+:is(.editor-content, .help-content) pre[data-code-theme] .code-fullscreen:hover {
+  color: var(--cb-fg);
+  background: var(--cb-pill-hover);
+}
+
+/* 发布态行号（编辑态 gutter 由 NodeView scoped 样式消费变量） */
+:is(.editor-content, .help-content)
+  pre[data-code-theme]
+  .code-block-scroll
+  code
+  > span.line::before {
+  color: var(--cb-gutter-fg);
+}
+
+/* ---- GitHub Dark token 色 ---- */
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-comment,
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-quote {
+  color: #8b949e;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-keyword,
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-selector-tag,
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-literal,
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-doctag,
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-name {
+  color: #ff7b72;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-string,
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-regexp,
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-addition {
+  color: #a5d6ff;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-number,
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-built_in,
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-type,
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-params {
+  color: #79c0ff;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-title,
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-title.function_,
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-title.class_ {
+  color: #d2a8ff;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-attr,
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-attribute,
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-variable,
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-template-variable,
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-property {
+  color: #ffa657;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-section,
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-selector-id,
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-selector-class {
+  color: #7ee787;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-meta,
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-symbol,
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-bullet,
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-link {
+  color: #79c0ff;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="github-dark"] .hljs-deletion {
+  color: #ffdcd7;
+  background: #67060c;
+}
+
+/* ---- One Dark token 色 ---- */
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-comment,
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-quote {
+  color: #5c6370;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-keyword,
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-selector-tag,
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-literal,
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-doctag,
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-name {
+  color: #c678dd;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-string,
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-regexp,
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-addition {
+  color: #98c379;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-number,
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-built_in,
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-type,
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-params {
+  color: #d19a66;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-title,
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-title.function_,
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-title.class_ {
+  color: #61afef;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-attr,
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-attribute,
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-variable,
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-template-variable,
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-property {
+  color: #e06c75;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-section,
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-selector-id,
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-selector-class {
+  color: #e5c07b;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-meta,
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-symbol,
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-bullet,
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-link {
+  color: #56b6c2;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="one-dark"] .hljs-deletion {
+  color: #e06c75;
+  background: rgba(224, 108, 117, 0.15);
+}
+
+/* ---- Monokai token 色 ---- */
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-comment,
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-quote {
+  color: #75715e;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-keyword,
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-selector-tag,
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-literal,
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-doctag,
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-name {
+  color: #f92672;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-string,
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-regexp,
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-addition {
+  color: #e6db74;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-number,
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-built_in,
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-type,
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-params {
+  color: #ae81ff;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-title,
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-title.function_,
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-title.class_ {
+  color: #a6e22e;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-attr,
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-attribute,
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-variable,
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-template-variable,
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-property {
+  color: #fd971f;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-section,
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-selector-id,
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-selector-class {
+  color: #a6e22e;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-meta,
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-symbol,
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-bullet,
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-link {
+  color: #ae81ff;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="monokai"] .hljs-deletion {
+  color: #f92672;
+  background: rgba(249, 38, 114, 0.15);
+}
+
+/* ---- Dracula token 色 ---- */
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-comment,
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-quote {
+  color: #6272a4;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-keyword,
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-selector-tag,
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-literal,
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-doctag,
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-name {
+  color: #ff79c6;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-string,
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-regexp,
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-addition {
+  color: #f1fa8c;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-number,
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-built_in,
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-type,
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-params {
+  color: #bd93f9;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-title,
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-title.function_,
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-title.class_ {
+  color: #50fa7b;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-attr,
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-attribute,
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-variable,
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-template-variable,
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-property {
+  color: #50fa7b;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-section,
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-selector-id,
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-selector-class {
+  color: #8be9fd;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-meta,
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-symbol,
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-bullet,
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-link {
+  color: #bd93f9;
+}
+
+:is(.editor-content, .help-content) pre[data-code-theme="dracula"] .hljs-deletion {
+  color: #ff5555;
+  background: rgba(255, 85, 85, 0.15);
 }

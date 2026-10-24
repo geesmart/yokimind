@@ -2,6 +2,32 @@
 
 记录每个版本的变更，新版本在最上方。版本号以根 package.json 为唯一来源，四端（server/web/pages）保持一致。
 
+## v1.0.4（2026-10-24）
+
+### 新功能
+
+- server: 智能体接入层落地——PAT 访问令牌（/token）、Agent API（/agent）、MCP Server（/mcp）、Skills（/skills）四模块共用 PAT 认证中间件，新增 accessTokens 表迁移与 agent/mcp/skills/token 集成测试
+- web: 新增智能体接入页 /settings/agents（PAT 管理与 MCP / CLI / Skills 接入指引，外部 AI 客户端经 PAT 访问知识库）
+- cli: 新增 apps/cli 命令行应用（yokimind CLI）
+- website: 新增 apps/website 官网应用（Nuxt）
+- editor: 新增 callout、card、code-block（NodeView 代码高亮）、columns、steps、prompt 提示块（Vue NodeView）、下划线样式、标题折叠、缩进、placeholder 等扩展，新增图标/Emoji 选择面板（icon-emoji-panel）
+- wiki: 服务端新增 Markdown 渲染器（document-markdown.renderer）、code-html-enhancer、content-json-prune、wiki-icon-svg
+- bin: 新增 build-solar-outline.mjs 太阳系图标轮廓构建脚本
+
+### 优化
+
+- web: 编辑器与 UI 组件图标从 lucide 全面替换为 Hugeicons
+- web: wiki 图标选择统一为 icon-emoji-panel + wiki-icon，移除旧 icon-picker
+- monorepo: TS 配置对齐 TS7（baseUrl 已废弃，paths 改 ./ 相对前缀，server 调整 rootDir）；根包名 yokimind-monorepo → yokimind；品牌 logo 资源更新
+- markdown-css: 样式大幅扩展并补充 index.d.ts 类型
+- pages: 新增 code-block、prompt-copy 客户端插件，优化预览设置面板
+- .trae: 新增多份功能计划文档与 skills，更新开发规则
+
+### 修复BUG
+
+- editor: 修复工具栏按钮激活态、折叠按钮布局、表格表头勾选同步、columns/容器 Backspace 删除、callout 内快捷键误触、code block 下 bubble menu 误弹、输入框 ring 光晕过宽、代码块全屏图标对调
+- pages: 修复代码块与 prompt 块渲染问题
+
 ## v1.0.3（2026-10-14）
 
 ### 新功能

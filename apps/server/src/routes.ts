@@ -12,6 +12,10 @@ import publishController from '~/modules/publish/publish.controller.js'
 import ragController from '~/modules/rag/rag.controller.js'
 import aiController from '~/modules/ai/ai.controller.js'
 import adminController from '~/modules/admin/admin.controller.js'
+import tokenController from '~/modules/token/token.controller.js'
+import agentController from '~/modules/agent/agent.controller.js'
+import mcpController from '~/modules/mcp/mcp.controller.js'
+import skillsController from '~/modules/skills/skills.controller.js'
 
 // ============ API 路由配置 ============
 // /health 必须注册：docker-compose 的 healthcheck 探 /api/v1/health，
@@ -27,6 +31,11 @@ const v1Routes = new Hono()
   .route('/rag', ragController)
   .route('/ai', aiController)
   .route('/admin', adminController)
+  // ============ 智能体接入层（MCP / Skills / CLI 共用 PAT 认证） ============
+  .route('/token', tokenController)
+  .route('/agent', agentController)
+  .route('/mcp', mcpController)
+  .route('/skills', skillsController)
 
 // API 路由（包含版本号）
 const apiRoutes = new Hono().route('/v1', v1Routes)

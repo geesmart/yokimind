@@ -77,6 +77,11 @@ export const ERROR_CODES = {
   INVALID_OLD_PASSWORD: 20004, // 当前密码错误（修改密码时）
   SAME_PASSWORD: 20005, // 新密码与原密码相同
 
+  // 智能体接入令牌错误 (21xxx)
+  PAT_INVALID: 21001, // 令牌无效（格式错误 / 不存在）
+  PAT_REVOKED: 21002, // 令牌已吊销
+  PAT_EXPIRED: 21003, // 令牌已过期
+
   // 设备错误 (3xxxx)
   DEVICE_REGISTER_FAILED: 30001,
   DEVICE_NOT_FOUND: 30002,
@@ -170,6 +175,9 @@ export const ERROR_MESSAGES: Record<number, string> = {
   [ERROR_CODES.INVALID_PASSWORD]: '密码错误',
   [ERROR_CODES.INVALID_OLD_PASSWORD]: '当前密码错误',
   [ERROR_CODES.SAME_PASSWORD]: '新密码不能与原密码相同',
+  [ERROR_CODES.PAT_INVALID]: '访问令牌无效',
+  [ERROR_CODES.PAT_REVOKED]: '访问令牌已吊销',
+  [ERROR_CODES.PAT_EXPIRED]: '访问令牌已过期',
   [ERROR_CODES.DEVICE_REGISTER_FAILED]: '设备注册失败',
   [ERROR_CODES.DEVICE_NOT_FOUND]: '设备不存在',
   [ERROR_CODES.HEARTBEAT_INVALID_DEVICE]: '无效的设备 ID',
@@ -343,5 +351,14 @@ export const API_PATHS = {
     SETTINGS_SAVE: '/admin/settings/save',
     /** AI 连接测试：POST（chat / embedding 逐项返回结果，失败不抛错） */
     TEST_AI: '/admin/test-ai',
+  },
+  /** 智能体接入令牌模块接口（token.controller.ts，需鉴权；PAT 管理页用） */
+  TOKEN: {
+    /** 令牌列表：POST（脱敏视图，不含哈希与明文） */
+    LIST: '/token/list',
+    /** 创建令牌：POST（明文仅在本次响应中出现一次） */
+    CREATE: '/token/create',
+    /** 吊销令牌：POST（幂等不可逆） */
+    REVOKE: '/token/revoke',
   },
 } as const

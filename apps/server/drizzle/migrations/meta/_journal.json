@@ -8,6 +8,13 @@
       "when": 1790737451936,
       "tag": "0000_clear_daimon_hellstrom",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792138884184,
+      "tag": "0001_quiet_james_howlett",
+      "breakpoints": true
     }
   ]
 }

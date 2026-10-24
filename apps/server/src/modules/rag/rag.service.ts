@@ -1165,6 +1165,26 @@ export async function runChatStream(
   return full
 }
 
+/**
+ * 执行问答同步输出（MCP ask_knowledge 工具专用，与 runChatStream 语义对齐）
+ *
+ * 复用 prepareChat 的三出口结果：kb 出口走 LCEL 链 invoke（非流式），
+ * 闲聊/兜底出口直接返回固定文案；sources 经同一裁决函数处理
+ * （模型自述无内容时置空引用，与 SSE 版行为一致）
+ *
+ * @param prepared prepareChat / prepareVisitorChat 产物
+ * @returns 完整回答文本 + 最终 sources
+ */
+export async function runChatSync(prepared: PreparedChat): Promise<{ answer: string; sources: RagChatSource[] }> {
+  if (prepared.kind !== 'kb') {
+    return { answer: prepared.replyText, sources: resolveChatSources(prepared, prepared.replyText) }
+  }
+  // 出口③：LCEL 组合（ChatOpenAI → 输出解析），invoke 一次性返回完整文本
+  const chain = (await createChatModel()).pipe(new StringOutputParser())
+  const answer = await chain.invoke(prepared.messages)
+  return { answer, sources: resolveChatSources(prepared, answer) }
+}
+
 // ============ 回答后 sources 裁决（消除「说没有内容却列引用」的矛盾） ============
 
 /**

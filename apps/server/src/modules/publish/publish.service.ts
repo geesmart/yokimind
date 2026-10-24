@@ -4,6 +4,7 @@ import { wiki, wikiPublish, wikiShares, wikiNodes, documents } from '~/db/schema
 import { BizException } from '~/core/lib/biz.exception.js'
 import { ErrorCode } from '~/config/error-code.js'
 import { listWikiNodesFlat } from '~/modules/wiki/wiki.service.js'
+import { buildWikiIconFields } from '~/modules/wiki/wiki-icon-svg.js'
 import { escapeLikePattern, locateKeywordHits } from '~/modules/wiki/wiki-search.service.js'
 import type { ContentHit } from '~/modules/wiki/wiki-search.service.js'
 import { uploadImage } from '~/modules/media/media.service.js'
@@ -260,6 +261,8 @@ async function buildSiteConfig(wikiId: string) {
     wikiName: w.name,
     wikiIcon: w.icon,
     wikiColor: w.color,
+    // Solar 图标烘焙结果（legacy lucide key 双 null，前端走 icon-meta 渲染）
+    ...buildWikiIconFields(w.icon, w.color),
     wikiDescription: w.description,
     // 从未配置过分享（无库级行）时按未发布兜底
     shareStatus: wikiShare?.shareStatus ?? 'private',

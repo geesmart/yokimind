@@ -25,10 +25,14 @@ export interface ShareNavButton {
 export interface ShareMeta {
   /** 知识库名称 */
   wikiName: string
-  /** 知识库图标（lucide 图标 key，如 BookOpen，经 icon-meta 转组件渲染，可空） */
+  /** 知识库图标（Solar 图标 id 或 legacy lucide key 如 BookOpen，可空） */
   wikiIcon?: string | null
-  /** 知识库颜色 key（icon-meta 色板，如 blue，可空） */
+  /** 知识库颜色 key（统一色板或 legacy icon-meta 色板，如 blue，可空） */
   wikiColor?: string | null
+  /** Solar 图标烘焙的完整 SVG 字符串（icon 为 Solar id 时下发；legacy key 为 null，走 icon-meta 渲染） */
+  wikiIconSvg?: string | null
+  /** 烘焙色值 hex（rainbow 为 null；仅 wikiIconSvg 非空时有意义，底色淡化用） */
+  wikiIconColor?: string | null
   /** 知识库描述（博客形态首页副标题数据源，可空） */
   wikiDescription?: string | null
   /**
@@ -71,10 +75,14 @@ export interface ShareMeta {
 export interface ShareSiteConfig {
   /** 知识库名称（站点标题回退数据源） */
   wikiName: string
-  /** 知识库图标（lucide 图标 key，可空） */
+  /** 知识库图标（Solar 图标 id 或 legacy lucide key，可空） */
   wikiIcon?: string | null
-  /** 知识库颜色 key（icon-meta 色板，可空） */
+  /** 知识库颜色 key（统一色板或 legacy icon-meta 色板，可空） */
   wikiColor?: string | null
+  /** Solar 图标烘焙的完整 SVG 字符串（icon 为 Solar id 时下发；legacy key 为 null） */
+  wikiIconSvg?: string | null
+  /** 烘焙色值 hex（rainbow 为 null；仅 wikiIconSvg 非空时有意义） */
+  wikiIconColor?: string | null
   /** 知识库描述（可空） */
   wikiDescription?: string | null
   /** 分享状态：'private'（未发布）| 'public'（已发布），预览条提示用 */

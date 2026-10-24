@@ -1,14 +1,18 @@
 /**
- * 知识库 Icon 与 Color 映射配置
+ * 知识库 Icon 与 Color 映射配置（legacy 渲染器）
+ *
+ * 知识库图标已统一为 IconEmojiPanel（Solar 图标 + EDITOR_ICON_COLORS 色板，见
+ * wiki-icon-meta.ts / wiki-icon.vue / create-wiki-modal.vue）；本文件降级为
+ * legacy 数据渲染器：wiki.icon/color 仍是历史 lucide key / 旧 8 色 key 的行
+ * （用户重选图标后自然收敛为 Solar id）继续走这里，视觉保持零回归。
  *
  * 用途：
- * - 为「新建知识库」弹窗提供 18 个 lucide 图标 + 12 种颜色方案
- * - 为知识库卡片渲染提供 icon 组件查找和颜色样式转换
+ * - legacy lucide 图标组件查找（getIconComponent，WikiIcon legacy 路径）
+ * - legacy 旧色板渲染样式（COLOR_OPTIONS / getColorStyle / getColorClasses）
  *
  * 设计：
  * - ICON_OPTIONS: 图标配置数组（key + 组件引用）
  * - COLOR_OPTIONS: 颜色配置数组（key + tailwind 类名 + HEX/RGB 值）
- * - 工具函数: getIconComponent / getColorClasses / getColorStyle
  */
 import {
   BookOpen,

@@ -136,9 +136,9 @@
                   >
                     <span
                       class="inline-flex items-center justify-center w-8 h-8 rounded-lg shrink-0"
-                      :style="{ background: kb.iconBg, color: kb.iconColor }"
+                      :style="{ background: kb.iconBg }"
                     >
-                      <component :is="kb.icon" :size="18" />
+                      <WikiIcon :icon="kb.icon" :color="kb.color" :size="18" />
                     </span>
                     <span
                       class="text-base font-semibold text-foreground truncate hover:underline underline-offset-4"
@@ -341,9 +341,9 @@
                       >
                         <span
                           class="inline-flex items-center justify-center w-8 h-8 rounded-md shrink-0"
-                          :style="{ background: kb.iconBg, color: kb.iconColor }"
+                          :style="{ background: kb.iconBg }"
                         >
-                          <component :is="kb.icon" :size="16" />
+                          <WikiIcon :icon="kb.icon" :color="kb.color" :size="16" />
                         </span>
                         <span
                           class="text-sm font-medium text-foreground truncate hover:underline underline-offset-4"
@@ -558,15 +558,9 @@
                     <div class="flex items-center gap-2.5 min-w-0 flex-1">
                       <span
                         class="inline-flex items-center justify-center w-8 h-8 rounded-lg shrink-0"
-                        :style="{
-                          background: getColorStyle(item.color).background,
-                          color: getColorStyle(item.color).color,
-                        }"
+                        :style="{ background: resolveWikiIconColor(item.color).bg }"
                       >
-                        <component
-                          :is="getIconComponent(item.icon) ?? ICON_OPTIONS[0].component"
-                          :size="18"
-                        />
+                        <WikiIcon :icon="item.icon" :color="item.color" :size="18" />
                       </span>
                       <div class="min-w-0">
                         <div class="text-sm font-medium text-foreground truncate">
@@ -739,7 +733,8 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { getIconComponent, getColorStyle, ICON_OPTIONS } from './components/icon-meta'
+import { resolveWikiIconColor } from './components/wiki-icon-meta'
+import WikiIcon from './components/wiki-icon.vue'
 
 /**
  * 知识库行/卡片展示数据（由 wiki store 派生）
@@ -748,9 +743,12 @@ interface KnowledgeBase {
   id: string
   title: string
   desc: string
-  icon: unknown
+  /** wiki.icon 原始值（Solar id 或 legacy lucide key，null 走默认图标），由 WikiIcon 渲染 */
+  icon: string | null
+  /** wiki.color 原始 key（统一色板或 legacy 色 key，null 走默认色） */
+  color: string | null
+  /** 图标底色（resolveWikiIconColor 的 bg） */
   iconBg: string
-  iconColor: string
   /** 是否已发布（数据源 wiki_publish.enabled）：Send 图标指示，与分享态独立可共存 */
   isPublished: boolean
   /** 是否已分享（数据源 wiki_shares 库级行 share_status=public）：Globe/Lock 指示，与发布态独立可共存 */
@@ -937,20 +935,18 @@ function formatSmartTime(iso: string | null | undefined): string {
 
 /**
  * 列表展示数据：wiki store → 卡片/表格行结构
- * 图标/配色优先用 wiki.icon + wiki.color，缺失时回退默认（BookText + 主色浅底）
+ * 图标/配色优先用 wiki.icon + wiki.color（Solar id 或 legacy lucide key），
+ * 渲染统一走 WikiIcon（自动区分新旧格式），底色经 resolveWikiIconColor 归一化
  */
 const displayWikis = computed<KnowledgeBase[]>(() =>
   wikiList.value.map((wiki: WikiItem) => {
-    const iconComponent = getIconComponent(wiki.icon)
-    const colorStyle = getColorStyle(wiki.color)
     return {
       id: wiki.id,
       title: wiki.name,
       desc: wiki.description ?? '',
-      // icon 缺失时回退默认图标（ICON_OPTIONS 第一个 = BookOpen）
-      icon: iconComponent ?? ICON_OPTIONS[0].component,
-      iconBg: colorStyle.background,
-      iconColor: colorStyle.color,
+      icon: wiki.icon ?? null,
+      color: wiki.color ?? null,
+      iconBg: resolveWikiIconColor(wiki.color).bg,
       // 两个独立状态（数据源分表、可同时为 true，前端并排独立展示不做互斥推断）：
       // - isShared：是否已分享（wiki_shares 库级行 share_status=public）→ Globe/Lock 图标
       // - isPublished：是否已发布（wiki_publish.enabled）→ Send 图标

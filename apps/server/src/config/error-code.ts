@@ -37,6 +37,21 @@ export const ErrorCode = {
     code: 20005,
     message: '新密码不能与原密码相同',
   },
+  // 个人访问令牌不存在或格式非法（智能体接入 PAT）
+  PAT_INVALID: {
+    code: 21001,
+    message: '访问令牌无效',
+  },
+  // 个人访问令牌已被吊销
+  PAT_REVOKED: {
+    code: 21002,
+    message: '访问令牌已被吊销',
+  },
+  // 个人访问令牌已过期
+  PAT_EXPIRED: {
+    code: 21003,
+    message: '访问令牌已过期',
+  },
   DEVICE_REGISTER_FAILED: {
     code: 30001,
     message: 'Device registration failed',

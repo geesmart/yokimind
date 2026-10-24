@@ -25,9 +25,33 @@
           </Tooltip>
         </TooltipProvider>
 
-        <!-- 面包屑导航：父级路径 > 当前文档（不展示知识库名层） -->
-        <Breadcrumb v-if="docTitle || (docPath && docPath.length > 0)" class="min-w-0">
+        <!-- 面包屑导航：知识库名 > 父级路径 > 当前文档 -->
+        <Breadcrumb
+          v-if="wikiName || docTitle || (docPath && docPath.length > 0)"
+          class="min-w-0"
+        >
           <BreadcrumbList class="flex-nowrap overflow-x-auto">
+            <!-- 知识库名层（最左，显示 emoji 图标）：owner / 访客整库形态可点击，
+                 跳回知识库首页（第一篇文档）；访客单页形态无整库浏览权限，降级纯文本不可点击 -->
+            <template v-if="wikiName">
+              <BreadcrumbItem class="max-w-[150px]">
+                <BreadcrumbLink
+                  v-if="wikiClickable"
+                  href="#"
+                  class="truncate max-w-[150px] inline-flex items-center gap-1"
+                  @click.prevent="emit('go:wiki')"
+                >
+                  <span class="truncate">{{ wikiName }}</span>
+                </BreadcrumbLink>
+                <BreadcrumbPage v-else class="truncate inline-flex items-center gap-1">
+                  <span v-if="wikiIcon" class="text-sm leading-none shrink-0">{{
+                    wikiIcon
+                  }}</span>
+                  <span class="truncate">{{ wikiName }}</span>
+                </BreadcrumbPage>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator v-if="(docPath?.length ?? 0) > 0 || docTitle" />
+            </template>
             <!-- 父级路径节点（可点击跳转，显示 emoji 图标） -->
             <template v-for="(node, index) in docPath || []" :key="node.id">
               <BreadcrumbItem>
@@ -641,6 +665,12 @@ const props = withDefaults(
     docPath?: BreadcrumbPathItem[]
     /** 当前文档标题（面包屑末级） */
     docTitle?: string
+    /** 知识库名称（面包屑最左层；空串/undefined 不渲染该层） */
+    wikiName?: string
+    /** 知识库图标（emoji） */
+    wikiIcon?: string | null
+    /** 知识库名是否可点击（访客单页分享无整库浏览权限时 false，降级纯文本展示） */
+    wikiClickable?: boolean
     /** 文档 ID（documents.id），用于自动保存 */
     documentId?: string
     /** 节点 ID（wikiNodes.id），用于标题保存 */
@@ -664,6 +694,7 @@ const props = withDefaults(
     guest: false,
     showLeftToggle: true,
     inTrash: false,
+    wikiClickable: true,
   }
 )
 
@@ -679,6 +710,8 @@ const emit = defineEmits<{
   (e: 'toggle:left'): void
   /** 请求切换右侧栏折叠/展开 */
   (e: 'toggle:right'): void
+  /** 点击面包屑知识库名：请求跳转知识库首页（第一篇文档，由父组件按 owner/guest 分流） */
+  (e: 'go:wiki'): void
 }>()
 
 /**

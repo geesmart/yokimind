@@ -124,8 +124,25 @@ const groups = computed(() => {
   return tree.map((node: HelpNode) => ({ node, docs: collectDocs(node) }))
 })
 
-/** 库图标组件（icon-meta 色板，找不到 key 时回退 BookOpen） */
+/**
+ * 库头图标渲染，两代数据并存：
+ * - Solar 图标 id：server 在 meta 接口烘焙好完整 SVG（wikiIconSvg），v-html 直出（色值已进 SVG，
+ *   底色用烘焙色值 color-mix 淡化；rainbow 色值为 null，回退中性底）；
+ * - legacy lucide key：wikiIconSvg 为 null，走 icon-meta 组件渲染（视觉与历史一致）。
+ */
+const wikiIconSvg = computed(() => meta.value?.wikiIconSvg ?? null)
+
+/** 烘焙图标底色（wikiIconColor 缺失/rainbow 时回退中性底） */
+const wikiIconBg = computed(() => {
+  const color = meta.value?.wikiIconColor
+  return color ? `color-mix(in srgb, ${color} 12%, white)` : 'hsl(var(--muted))'
+})
+
+/** legacy 图标组件（icon-meta 色板，找不到 key 时回退 BookOpen） */
 const wikiIcon = computed(() => getIconComponent(meta.value?.wikiIcon) ?? BookOpen)
+
+/** legacy 路径的图标底色/前景色 */
+const wikiIconStyle = computed(() => getColorStyle(meta.value?.wikiColor))
 
 // SEO：落地页输出站点标题（owner 自定义优先回退库名）与描述；密码库 noindex 不收录
 // description：owner 配置的站点 SEO 描述优先，留空回退生成文案（meta description）
@@ -159,9 +176,16 @@ useHead({
     <header class="mb-12 flex flex-col items-center text-center">
       <div
         class="mb-4 flex size-16 items-center justify-center rounded-2xl"
-        :style="getColorStyle(meta.wikiColor)"
+        :style="wikiIconSvg ? { background: wikiIconBg } : wikiIconStyle"
       >
-        <component :is="wikiIcon" class="size-8" />
+        <!-- Solar 图标：server 烘焙的完整 SVG（来源仅限 iconify 数据，色值已烘焙） -->
+        <span
+          v-if="wikiIconSvg"
+          class="flex size-8 items-center justify-center [&_svg]:block [&_svg]:size-full"
+          v-html="wikiIconSvg"
+        />
+        <!-- legacy lucide 图标 -->
+        <component :is="wikiIcon" v-else class="size-8" />
       </div>
       <h1 class="text-3xl font-bold tracking-tight text-foreground">{{ displayTitle }}</h1>
       <p class="mt-2 text-sm text-muted-foreground">帮助中心</p>

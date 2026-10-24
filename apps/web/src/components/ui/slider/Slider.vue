@@ -43,7 +43,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
       :key="key"
       data-slot="slider-thumb"
       :data-vertical="props.orientation === 'vertical' ? '' : undefined"
-      class="border-ring ring-ring/50 relative size-3 rounded-full border bg-white transition-[color,box-shadow] after:absolute after:-inset-2 hover:ring-3 focus-visible:ring-3 focus-visible:outline-hidden active:ring-3 block shrink-0 select-none disabled:pointer-events-none disabled:opacity-50"
+      class="border-ring ring-ring/50 relative size-3 rounded-full border bg-white transition-[color,box-shadow] after:absolute after:-inset-2 hover:ring-2 focus-visible:ring-2 focus-visible:outline-hidden active:ring-2 block shrink-0 select-none disabled:pointer-events-none disabled:opacity-50"
     />
   </SliderRoot>
 </template>

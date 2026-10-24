@@ -1,0 +1,27 @@
+{
+  "name": "@yokimind/cli",
+  "version": "1.0.0",
+  "description": "YokiMind 命令行工具：知识库列表 / 检索 / 文档读写 / Skills 下载 / MCP 配置生成（PAT 令牌认证）",
+  "type": "module",
+  "bin": {
+    "yokimind": "./bin/yokimind.js"
+  },
+  "files": [
+    "bin",
+    "lib"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "commander": "^14.0.0"
+  },
+  "keywords": [
+    "yokimind",
+    "knowledge-base",
+    "mcp",
+    "agent-skills",
+    "cli"
+  ],
+  "license": "MIT"
+}

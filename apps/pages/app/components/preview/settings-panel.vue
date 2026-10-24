@@ -313,7 +313,7 @@ onUnmounted(() => clearTimeout(messageTimer))
                 maxlength="200"
                 placeholder="留空时使用页面默认摘要"
                 aria-label="SEO 描述"
-                class="dark:bg-input/30 border-input focus-visible:border-ring focus-visible:ring-ring/50 mt-3 min-h-20 w-full resize-y rounded-lg border bg-transparent px-2.5 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-3"
+                class="dark:bg-input/30 border-input focus-visible:border-ring focus-visible:ring-ring/50 mt-3 min-h-20 w-full resize-y rounded-lg border bg-transparent px-2.5 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2"
               />
             </div>
 

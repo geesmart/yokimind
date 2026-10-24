@@ -15,7 +15,7 @@
       <DialogHeader class="border-b pb-3">
         <DialogTitle>{{ title }}</DialogTitle>
         <DialogDescription>
-          AI 服务商配置（对话 / 向量 / 精排）与检索参数，保存后新配置对全部服务即时生效
+          选择服务商平台并填写密钥即可使用；可为对话 / 向量 / 精排分别指定不同厂商，保存后新配置即时生效
         </DialogDescription>
       </DialogHeader>
 

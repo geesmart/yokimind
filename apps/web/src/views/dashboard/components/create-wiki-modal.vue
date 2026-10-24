@@ -11,11 +11,33 @@
       </DialogHeader>
 
       <div class="flex flex-col gap-4 mt-2">
-        <!-- Icon 选择器 + 知识库名称（并排） -->
+        <!-- 统一图标选择器（Solar 图标 + 统一色板） + 知识库名称（并排） -->
         <div class="flex flex-col gap-2">
           <label class="text-md font-medium text-foreground">知识库名称</label>
           <div class="flex items-center gap-2">
-            <IconPicker class="h-7" v-model:icon="form.icon" v-model:color="form.color" />
+            <Popover v-model:open="iconPickerOpen">
+              <PopoverTrigger as-child>
+                <button
+                  type="button"
+                  class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border transition-colors hover:ring-2 hover:ring-ring/30"
+                  :style="{ background: iconVisual.bg }"
+                  title="选择图标"
+                >
+                  <WikiIcon :icon="form.icon" :color="form.color" :size="17" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" :side-offset="6" class="w-[360px] gap-0 p-0">
+                <!-- 统一图标面板（与编辑器同一套）：仅图标 tab（知识库图标不支持表情）+ 统一色板 -->
+                <IconEmojiPanel
+                  :active-icon-id="form.icon"
+                  :active-color="form.color"
+                  :enable-emojis="false"
+                  :show-remove="false"
+                  @select-icon="onPickIcon"
+                  @apply-color="onPickColor"
+                />
+              </PopoverContent>
+            </Popover>
             <Input
               v-model="form.name"
               placeholder="请输入 2-50 位知识库名称"
@@ -130,8 +152,11 @@ import { reindexRag } from '@/api/modules/rag'
 import { getAiStatus } from '@/api/modules/ai'
 import type { WikiItem } from '@/api/modules/wiki'
 import { ApiError } from '@/api/request'
-import IconPicker from './icon-picker.vue'
-import { DEFAULT_ICON, DEFAULT_COLOR } from './icon-meta'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import type { SolarIconItem } from '@/components/notion-editor/utils/solar-library.js'
+import IconEmojiPanel from '@/components/notion-editor/components/icon-emoji-panel.vue'
+import { resolveWikiIconColor, DEFAULT_WIKI_ICON, DEFAULT_WIKI_COLOR } from './wiki-icon-meta'
+import WikiIcon from './wiki-icon.vue'
 
 /**
  * Props
@@ -181,15 +206,31 @@ async function refreshAiStatus() {
   }
 }
 
-/** 表单数据 */
+/** 表单数据（icon = Solar 图标 id 或 legacy lucide key；color = 统一色板 key 或 legacy 色 key） */
 const form = reactive({
   name: '',
   description: '',
-  icon: DEFAULT_ICON,
-  color: DEFAULT_COLOR,
+  icon: DEFAULT_WIKI_ICON,
+  color: DEFAULT_WIKI_COLOR,
   // 是否自动 RAG 索引（新建/编辑均可设置；编辑模式用 editData 回填）
   ragEnabled: false,
 })
+
+/** 统一图标面板显隐（触发按钮 = 名称输入框左侧的图标方块） */
+const iconPickerOpen = ref(false)
+
+/** 触发按钮的图标视觉（底色随所选颜色归一化） */
+const iconVisual = computed(() => resolveWikiIconColor(form.color))
+
+/** 面板选中图标回调：写回 Solar id（legacy 值在下一次选择后自然收敛为新格式） */
+function onPickIcon(item: SolarIconItem) {
+  form.icon = item.id
+}
+
+/** 面板选中颜色回调：写回统一色板 key（或 'rainbow'） */
+function onPickColor(color: string) {
+  form.color = color
+}
 
 /** 表单错误信息 */
 const errors = reactive({
@@ -213,15 +254,16 @@ watch(
     if (isEditMode.value && props.editData) {
       form.name = props.editData.name
       form.description = props.editData.description ?? ''
-      form.icon = props.editData.icon ?? DEFAULT_ICON
-      form.color = props.editData.color ?? DEFAULT_COLOR
+      // legacy lucide key 原样回填（面板无高亮，视觉由 WikiIcon legacy 路径渲染）
+      form.icon = props.editData.icon ?? DEFAULT_WIKI_ICON
+      form.color = props.editData.color ?? DEFAULT_WIKI_COLOR
       // 回填自动 RAG 索引开关（后端未返回/历史数据兜底为 false）
       form.ragEnabled = props.editData.ragEnabled ?? false
     } else {
       form.name = ''
       form.description = ''
-      form.icon = DEFAULT_ICON
-      form.color = DEFAULT_COLOR
+      form.icon = DEFAULT_WIKI_ICON
+      form.color = DEFAULT_WIKI_COLOR
       form.ragEnabled = false
     }
 

@@ -4,6 +4,7 @@ import { wiki, wikiShares, documents, wikiNodes, wikiPublish } from '~/db/schema
 import { BizException } from '~/core/lib/biz.exception.js'
 import { ErrorCode } from '~/config/error-code.js'
 import { listWikiNodesFlat } from '~/modules/wiki/wiki.service.js'
+import { buildWikiIconFields } from '~/modules/wiki/wiki-icon-svg.js'
 import { signShareToken } from './share.util.js'
 import { flattenPublishSettings } from '~/modules/publish/publish.util.js'
 
@@ -183,6 +184,8 @@ export async function getShareMeta(wikiId: string, docId?: string) {
     return {
       wikiName: w.name,
       wikiIcon: w.icon,
+      // Solar 图标烘焙结果（legacy lucide key 双 null，前端走 icon-meta 渲染）
+      ...buildWikiIconFields(w.icon, w.color),
       // 库描述（博客形态首页副标题数据源，帮助中心形态暂未使用）
       wikiDescription: w.description,
       ...publishFields,
@@ -211,6 +214,8 @@ export async function getShareMeta(wikiId: string, docId?: string) {
       wikiName: w.name,
       wikiIcon: w.icon,
       wikiColor: w.color,
+      // Solar 图标烘焙结果（legacy lucide key 双 null，前端走 icon-meta 渲染）
+      ...buildWikiIconFields(w.icon, w.color),
       wikiDescription: w.description,
       ...publishFields,
       accessType: 'wiki' as const,
@@ -228,6 +233,8 @@ export async function getShareMeta(wikiId: string, docId?: string) {
     wikiName: w.name,
     wikiIcon: w.icon,
     wikiColor: w.color,
+    // Solar 图标烘焙结果（legacy lucide key 双 null，前端走 icon-meta 渲染）
+    ...buildWikiIconFields(w.icon, w.color),
     wikiDescription: w.description,
     ...publishFields,
     accessType: 'page' as const,

@@ -15,12 +15,14 @@ export const CreateWikiSchema = z.object({
     .string()
     .max(500, '知识库描述最长 500 位')
     .optional(),
-  // 知识库图标 key（可选，对应前端 icon-meta.ts 中的图标标识）
+  // 知识库图标（可选）：统一为 Solar outline 图标 id（如 'book'，与编辑器同一图库），
+  // 历史数据为 lucide 图标 key（如 'BookOpen'），渲染端按「Solar 表能否命中」区分新旧格式
   icon: z
     .string()
     .max(50, '图标标识最长 50 位')
     .optional(),
-  // 知识库主题色 key（可选，对应前端 icon-meta.ts 中的颜色标识）
+  // 知识库主题色 key（可选）：统一色板 EDITOR_ICON_COLORS 的 key（含 'rainbow'），
+  // 历史数据为旧 icon-meta 色 key（blue/indigo/violet/pink/orange/amber/green/slate）
   color: z
     .string()
     .max(30, '颜色标识最长 30 位')
