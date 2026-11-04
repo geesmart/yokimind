@@ -32,8 +32,8 @@ const router = createRouter({
       component: () => import('@/views/admin/index.vue'),
     },
     {
-      // 智能体接入页（需登录）：访问令牌（PAT）管理与 MCP / CLI / Skills 接入指引
-      // 三协议共用 PAT 令牌，外部 AI 客户端（Claude / Cursor / Trae 等）经此访问知识库
+      // 智能体接入页（需登录）：访问令牌（PAT）管理与 MCP / Skills 接入指引
+      // 两类接入方式共用 PAT 令牌，外部 AI 客户端（Claude / Cursor / Trae 等）经此访问知识库
       path: '/settings/agents',
       name: 'agents',
       component: () => import('@/views/agents/index.vue'),

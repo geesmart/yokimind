@@ -687,7 +687,7 @@ export const admins = pgTable('admins', {
 
 /**
  * 个人访问令牌表（PAT，Personal Access Token）
- * 供智能体接入协议（MCP / Skills / Agent API / CLI）以 Bearer 方式认证，
+ * 供智能体接入协议（MCP / Skills / Agent API）以 Bearer 方式认证，
  * 与登录 token（user_token，绑定设备、会过期）隔离；令牌等同本人全权限。
  * 安全约定：明文令牌（yki_<48hex>）仅在创建响应中出现一次，库中只存 sha256 哈希。
  */

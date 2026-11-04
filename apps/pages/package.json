@@ -1,8 +1,8 @@
 {
   "name": "@yokimind/pages",
-  "version": "1.0.4",
+  "version": "1.2.0",
   "private": true,
-  "description": "YokiMind 公开内容站（Nuxt SSR，面向 SEO：blog / wiki / 图文日志发布）",
+  "description": "Yokimind 公开内容站（Nuxt SSR，面向 SEO：blog / wiki / 图文日志发布）",
   "type": "module",
   "scripts": {
     "dev": "nuxt dev --port 6002 --host",

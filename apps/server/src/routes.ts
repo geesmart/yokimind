@@ -31,7 +31,7 @@ const v1Routes = new Hono()
   .route('/rag', ragController)
   .route('/ai', aiController)
   .route('/admin', adminController)
-  // ============ 智能体接入层（MCP / Skills / CLI 共用 PAT 认证） ============
+  // ============ 智能体接入层（MCP / Skills / Agent API 共用 PAT 认证） ============
   .route('/token', tokenController)
   .route('/agent', agentController)
   .route('/mcp', mcpController)
@@ -41,7 +41,7 @@ const v1Routes = new Hono()
 const apiRoutes = new Hono().route('/v1', v1Routes)
 
 // ============ 根路径路由 ============
-// SERVE_WEB_DIR 设置时（npm CLI/Docker 分发场景），根路径交给 app.ts 的 SPA history fallback，
+// SERVE_WEB_DIR 设置时（分发包 / Docker 部署场景），根路径交给 app.ts 的 SPA history fallback，
 // 占位页不再注册；未设置时保持原有占位页行为（前后端分离部署不受影响）
 const rootRoute = new Hono().get('/', (c) => {
   return c.html(

@@ -41,7 +41,7 @@ app.route('/', routes)
 // ============ 分发场景目录配置 ============
 
 /**
- * 前端 SPA 产物目录（npm CLI / Docker 分发场景由 CLI 注入）
+ * 前端 SPA 产物目录（分发包 / Docker 部署由 SERVE_WEB_DIR 指定）
  * - 未设置：保持现状（前后端分离部署，server 不托管前端）
  * - 设置后：托管 SPA 静态产物 + history fallback，单进程全托管
  */

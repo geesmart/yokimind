@@ -121,12 +121,14 @@ const themeStyle = computed<Record<string, string> | undefined>(() => {
           <img v-else-if="siteSettings" src="/logo.png" alt="YOKI文档" class="h-8" />
         </div>
 
-        <!-- 中部搜索入口（/w/ 知识库页面显示，含预览页）：absolute 水平居中，
-             样式对齐旧筛选输入框（白底 + 边框 + 圆角），点击唤起搜索弹窗 -->
+        <!-- 中部搜索入口（/w/ 知识库页面显示，含预览页）：
+             ≥sm 沿用 absolute 水平居中的文字样式（对齐旧筛选输入框，白底 + 边框 + 圆角）；
+             <sm 收窄为图标按钮（普通流内，紧跟 logo），避免与右侧导航 pill 争宽溢出。
+             两者点击唤起同一搜索弹窗 -->
         <button
           v-if="isWikiPage"
           type="button"
-          class="absolute left-1/2 top-1/2 flex h-9 w-72 max-w-[40vw] -translate-x-1/2 -translate-y-1/2 items-center rounded-lg border border-border bg-card px-3 text-sm text-muted-foreground transition-colors hover:border-primary/40"
+          class="hidden sm:flex absolute left-1/2 top-1/2 h-9 w-72 max-w-[40vw] -translate-x-1/2 -translate-y-1/2 items-center rounded-lg border border-border bg-card px-3 text-sm text-muted-foreground transition-colors hover:border-primary/40"
           aria-label="搜索文档"
           @click="searchOpen = true"
         >
@@ -135,14 +137,24 @@ const themeStyle = computed<Record<string, string> | undefined>(() => {
             搜索...
           </span>
         </button>
+        <button
+          v-if="isWikiPage"
+          type="button"
+          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground sm:hidden"
+          aria-label="搜索文档"
+          @click="searchOpen = true"
+        >
+          <Search class="size-4.5" />
+        </button>
 
         <!-- 页头右侧导航按钮组（owner 在预览面板配置，最多 5 个）：
              - href 以 http(s):// 开头 → <a> 新标签打开（rel="noopener noreferrer" 防窗口句柄操控）
              - href 以 / 开头 → <NuxtLink> 站内当前页跳转（客户端路由，不整页刷新）
-             - 样式主色实底 pill（bg-primary 跟随站点主题色变量），ml-auto 靠右 -->
+             - 样式主色实底 pill（bg-primary 跟随站点主题色变量），ml-auto 靠右；
+               窄屏 min-w-0 + overflow-x-auto 允许横向滑动，单个 pill 截断不撑爆页头 -->
         <nav
           v-if="siteSettings?.navButtons?.length"
-          class="ml-auto flex items-center gap-2"
+          class="ml-auto flex min-w-0 items-center gap-2 overflow-x-auto"
           aria-label="站点导航"
         >
           <template v-for="(btn, i) in siteSettings.navButtons" :key="i">
@@ -151,16 +163,16 @@ const themeStyle = computed<Record<string, string> | undefined>(() => {
               :href="btn.href"
               target="_blank"
               rel="noopener noreferrer"
-              class="flex h-9 items-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+              class="flex h-9 max-w-28 shrink-0 items-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
             >
-              {{ btn.title }}
+              <span class="truncate">{{ btn.title }}</span>
             </a>
             <NuxtLink
               v-else
               :to="btn.href"
-              class="flex h-9 items-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+              class="flex h-9 max-w-28 shrink-0 items-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
             >
-              {{ btn.title }}
+              <span class="truncate">{{ btn.title }}</span>
             </NuxtLink>
           </template>
         </nav>
@@ -204,7 +216,7 @@ const themeStyle = computed<Record<string, string> | undefined>(() => {
       <div
         class="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-4 text-sm text-muted-foreground sm:px-6"
       >
-        <span>© {{ new Date().getFullYear() }} 墨刻文档 YokiMind</span>
+        <span>© {{ new Date().getFullYear() }} Yokimind</span>
         <span class="hidden sm:inline">把你的知识发布成 Blog、Wiki 与图文日志</span>
       </div>
     </footer>

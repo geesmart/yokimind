@@ -9,9 +9,9 @@
   <div class="h-screen min-h-170 bg-muted flex flex-col">
     <!-- ============ 状态一：需要密码 ============ -->
     <div v-if="state === 'password'" class="flex-1 flex flex-col items-center justify-center p-6 gap-8">
-      <!-- 墨刻文档品牌标识（与密码卡片作为整体垂直居中），点击跳转首页 -->
+      <!-- Yokimind 品牌标识（与密码卡片作为整体垂直居中），点击跳转首页 -->
       <a href="/" class="shrink-0" aria-label="返回首页" @click.prevent="goHome">
-        <img src="/logo.png" alt="YokiMind" class="h-12" />
+        <img src="/logo.png" alt="Yokimind" class="h-12" />
       </a>
       <div class="w-full max-w-sm flex flex-col gap-5 rounded-xl border border-border bg-background p-8 shadow-sm">
         <div class="flex flex-col items-center gap-3 text-center">
@@ -61,9 +61,9 @@
       v-else
       class="flex-1 flex flex-col items-center justify-center p-6 gap-8"
     >
-      <!-- 墨刻文档品牌标识（与失效卡片作为整体垂直居中），点击跳转首页 -->
+      <!-- Yokimind 品牌标识（与失效卡片作为整体垂直居中），点击跳转首页 -->
       <a href="/" class="shrink-0" aria-label="返回首页" @click.prevent="goHome">
-        <img src="/logo.png" alt="YokiMind" class="h-12" />
+        <img src="/logo.png" alt="Yokimind" class="h-12" />
       </a>
       <div class="flex flex-col items-center gap-3 text-center">
         <div class="flex items-center justify-center size-12 rounded-full bg-accent">
@@ -198,7 +198,7 @@ function goLogin() {
 }
 
 /**
- * 跳转首页（点击墨刻文档 logo；未登录时首页路由守卫会自动引导到登录页）
+ * 跳转首页（点击Yokimind logo；未登录时首页路由守卫会自动引导到登录页）
  */
 function goHome() {
   router.push({ name: 'home' })

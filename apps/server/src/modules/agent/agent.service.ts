@@ -30,7 +30,7 @@ export async function listWikis(userId: string) {
   return listWikisByUserId(userId)
 }
 
-/** 文档树节点（组树后的结构，供 CLI tree / MCP wiki_tree / SKILL.md 大纲共用） */
+/** 文档树节点（组树后的结构，供 Agent API tree / MCP wiki_tree / SKILL.md 大纲共用） */
 export interface AgentTreeNode {
   id: string
   title: string

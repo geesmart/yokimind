@@ -24,14 +24,17 @@
     direction="horizontal"
     class="h-screen min-h-170 bg-muted"
   >
-    <!-- 左侧栏：文档树（可拖拽调宽，min 14% / max 28%；可折叠至 0 宽度）
-         owner 恒显示；guest 仅整库形态显示（单页形态无文档树，整栏隐藏） -->
+    <!-- 左侧栏：文档树（可拖拽调宽；可折叠至 0 宽度）
+         owner 恒显示；guest 仅整库形态显示（单页形态无文档树，整栏隐藏）
+         移动端（≤768px）：default-size=0 与 collapsedSize 相等即初始折叠
+         （reka-ui 以 defaultSize === collapsedSize 判定初始折叠态），
+         正文满屏；顶栏折叠按钮展开时 75% 宽保证文档树可读 -->
     <ResizablePanel
       v-if="!guestMode || guestAccessType === 'wiki'"
       ref="leftPanelRef"
-      :default-size="20"
-      :min-size="14"
-      :max-size="28"
+      :default-size="isMobile ? 0 : 20"
+      :min-size="isMobile ? 60 : 14"
+      :max-size="isMobile ? 85 : 28"
       :collapsible="true"
       :collapsed-size="0"
       @collapse="isLeftCollapsed = true"
@@ -125,6 +128,7 @@ import { ref, watch, computed, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { FileText } from '@lucide/vue'
+import { useMediaQuery } from '@vueuse/core'
 import type { Content } from '@tiptap/vue-3'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
 import LayoutLeft from '@/views/wiki/layout-left/index.vue'
@@ -231,24 +235,31 @@ const contentLoading = ref(false)
  * - isLeftCollapsed：左侧文档树栏是否折叠（由 ResizablePanel 的 @collapse/@expand 事件同步）
  * - isRightCollapsed：右侧大纲栏是否折叠
  * 由 LayoutMain 顶栏的 PanelLeft/PanelRight 按钮触发 toggle，再通过模板 ref 调命令式 collapse()/expand()
+ *
+ * 移动端（≤768px，与 sidebar 组件同断点）：文档树按百分比压缩完全不可读，
+ * 初始即折叠（正文满屏），顶栏折叠按钮展开时按 default-size=75% 打开成可读宽度
  */
-const isLeftCollapsed = ref(false)
+const isMobile = useMediaQuery('(max-width: 768px)')
+const isLeftCollapsed = ref(isMobile.value)
 const isRightCollapsed = ref(false)
 
 /**
  * 左右 ResizablePanel 模板引用
- * reka-ui SplitterPanel 经 useForwardExpose 透传了 collapse()/expand() 命令式方法
+ * reka-ui SplitterPanel 经 useForwardExpose 透传了 collapse()/expand()/resize() 命令式方法
  */
-const leftPanelRef = ref<{ collapse: () => void; expand: () => void } | null>(null)
+const leftPanelRef = ref<{ collapse: () => void; expand: () => void; resize: (size: number) => void } | null>(null)
 const rightPanelRef = ref<{ collapse: () => void; expand: () => void } | null>(null)
 
 /**
  * 切换左侧栏折叠/展开
  * 折叠态调 expand()，展开态调 collapse()
+ * 移动端展开后补一次 resize(75)：expand() 在「初始即折叠」场景下无折叠前尺寸可恢复，
+ * 只会回到 min-size（60%），显式推到 75% 保证文档树可读
  */
 function toggleLeftPanel() {
   if (isLeftCollapsed.value) {
     leftPanelRef.value?.expand()
+    if (isMobile.value) leftPanelRef.value?.resize(75)
   } else {
     leftPanelRef.value?.collapse()
   }

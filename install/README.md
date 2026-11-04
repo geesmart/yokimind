@@ -1,6 +1,6 @@
-# YokiMind 部署指南
+# Yokimind 部署指南
 
-YokiMind 的全部服务（应用 + PostgreSQL 17 + Redis 7 + Qdrant + RustFS 对象存储）打包为一个 Docker 镜像，配合 `docker-compose.yml` 编排，一条命令即可拉起完整的自托管环境，无需安装 Node.js 或任何数据库软件。对外仅暴露一个 HTTP 端口（默认 `60000`）。
+Yokimind 的全部服务（应用 + PostgreSQL 17 + Redis 7 + Qdrant + RustFS 对象存储）打包为一个 Docker 镜像，配合 `docker-compose.yml` 编排，一条命令即可拉起完整的自托管环境，无需安装 Node.js 或任何数据库软件。对外仅暴露一个 HTTP 端口（默认 `60000`）。
 
 ## 快速开始
 

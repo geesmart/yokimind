@@ -58,7 +58,7 @@
           （原彩色玻璃大 logo 暂时隐藏，需要时恢复 <LogoGlass :size="72" />）
         -->
         <div class="relative mb-8 flex">
-          <img src="/logo.png" alt="YokiMind" class="w-100" />
+          <img src="/logo.png" alt="Yokimind" class="w-100" />
           <VersionTag class="h-6" />
         </div>
 
@@ -66,12 +66,12 @@
         <h1
           class="text-5xl sm:text-4xl lg:text-6xl font-bold tracking-tight text-foreground text-balance"
         >
-          开源的企业 AI 知识协作工具
+          开源的AI知识引擎
         </h1>
 
         <!-- 副标语：弱化文案，强调产品定位与价值 -->
         <p class="mt-2 max-w-xl text-base sm:text-lg text-muted-foreground text-pretty">
-          面向初创公司、企业和智能体的自托管AI知识库
+          面向个人、团队和AI智能体的知识管理工具
         </p>
 
         <!-- 行动按钮组：按登录态切换主 CTA -->
@@ -176,7 +176,7 @@
       <div
         class="mx-auto max-w-5xl px-4 flex items-center justify-center gap-4 text-xs text-muted-foreground"
       >
-        <span>© 2026 YokiMind</span>
+        <span>© 2026 Yokimind</span>
         <span class="text-border">|</span>
         <RouterLink
           to="/brand"

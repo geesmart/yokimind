@@ -10,8 +10,8 @@
     <!-- 左侧：logo + 版本标签 -->
     <div class="flex-1 shrink-0 flex items-center gap-1 ">
         <a href="/" class="flex items-center gap-1.5">
-          <img src="/logo-icon.png" alt="YokiMind" class="h-10" />
-          <img src="/logo-text.png" alt="YokiMind" class="h-5" />
+          <img src="/logo-icon.png" alt="Yokimind" class="h-10" />
+          <img src="/logo-text.png" alt="Yokimind" class="h-5" />
         </a>
         <VersionTag class="hidden sm:inline-flex right-[10]" />
     </div>

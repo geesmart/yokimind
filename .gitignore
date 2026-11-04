@@ -52,3 +52,7 @@ coverage/
 # Dependency directories
 apps/web/node_modules/
 apps/server/node_modules/
+
+# Agent tooling artifacts（agent 工具产物，研发自用，不入库）
+.archify/
+.trae-html-share-packages/

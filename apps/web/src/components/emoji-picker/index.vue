@@ -31,7 +31,7 @@
       </button>
     </PopoverTrigger>
     <!-- 阻止 Popover 打开时自动聚焦首个可聚焦元素（搜索框） -->
-    <PopoverContent @open-auto-focus.prevent align="start" :side-offset="8" class="w-[400px] p-0 border shadow-xl">
+    <PopoverContent @open-auto-focus.prevent align="start" :side-offset="8" class="w-[400px] p-0 border ring-0 shadow-xl">
       <!-- 搜索栏 -->
       <div class="p-3 pb-2">
         <div class="flex items-center gap-1.5 relative">

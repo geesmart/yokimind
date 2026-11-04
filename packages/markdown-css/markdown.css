@@ -378,11 +378,17 @@
 :is(.editor-content, .help-content) blockquote {
   border-left: 3px solid var(--md-color-quote-border);
   quotes: none;
-  color: var(--md-color-text-secondary);
+  color: var(--md-color-text-tertiary);
   padding-left: 1rem;
   font-style: normal;
   font-weight: 400;
+  font-size: 15px; /* 比正文（16px）小一号 */
   margin: 10px 0;
+}
+
+/* 引用块内部段落跟随引用字号（p 的显式 16px 会盖掉继承） */
+:is(.editor-content, .help-content) blockquote p {
+  font-size: inherit;
 }
 
 /* ============================================================================
@@ -664,12 +670,13 @@
     border-color 0.15s ease;
 }
 
-/* 类型图标：::before + mask（SVG data URI），颜色即图标色 */
+/* 类型图标：::before + mask（SVG data URI），颜色即图标色。
+   top 以首行居中为基准再上移 2px（视觉对齐）：12px + (1.8em − 18px) / 2 − 2px */
 :is(.editor-content, .help-content) [data-callout-type]::before {
   content: '';
   position: absolute;
   left: 15px;
-  top: 16px;
+  top: calc(12px + (1.8em - 18px) / 2 - 2px);
   width: 18px;
   height: 18px;
   background-color: var(--callout-icon-color, #2563eb);
@@ -734,7 +741,7 @@
   background-color: #fef2f2;
   border-color: #fecaca;
   --callout-icon-color: #dc2626;
-  --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7.86 2h8.28L22 7.86v8.28L16.14 22H7.86L2 16.14V7.86L7.86 2z'/%3E%3Cpath d='M12 8v4'/%3E%3Cpath d='M12 16h.01'/%3E%3C/svg%3E");
+  --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 8v4'/%3E%3Cpath d='M12 16h.01'/%3E%3C/svg%3E");
 }
 
 /* 容器内部子块间距收敛：首尾清除多余外边距，避免内边距 + 子块边距叠加 */
@@ -763,6 +770,9 @@
    default 为中性白卡 + 灰色外链方框图标。
    ========================================================================== */
 :is(.editor-content, .help-content) [data-card-type] {
+  /* 显式块级：配置 URL 后整卡渲染为 <a>（card.ts），a 默认行内会把卡片
+     撕成行内盒（背景碎片化、文字溢出）；div 形态本就是块级，不受影响 */
+  display: block;
   position: relative;
   padding: 52px 20px 16px;
   border-radius: 12px;
@@ -873,7 +883,7 @@
   background-color: #fef2f2;
   border-color: #fecaca;
   --card-icon-color: #dc2626;
-  --card-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7.86 2h8.28L22 7.86v8.28L16.14 22H7.86L2 16.14V7.86L7.86 2z'/%3E%3Cpath d='M12 8v4'/%3E%3Cpath d='M12 16h.01'/%3E%3C/svg%3E");
+  --card-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 8v4'/%3E%3Cpath d='M12 16h.01'/%3E%3C/svg%3E");
 }
 
 /* 容器内部子块间距收敛：首尾清除多余外边距，避免内边距 + 子块边距叠加。
@@ -1160,6 +1170,28 @@
   :is(.editor-content, .help-content) ol {
     padding-left: 20px;
   }
+
+  /* ---- 表格：窄屏改自动布局 + wrapper 横向滚动，替代「fixed 布局硬压扁」---- */
+  :is(.editor-content, .help-content) .tableWrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  :is(.editor-content, .help-content) table {
+    table-layout: auto;
+    /* 窄表仍撑满容器；宽表超出容器后由 .tableWrapper 横向滚动 */
+    min-width: 100%;
+  }
+
+  :is(.editor-content, .help-content) th,
+  :is(.editor-content, .help-content) td {
+    /* 关键：word-break: break-word 会把 min-content 压到单字符，使横向滚动
+       失效（表格永远撑不满就换行，退回被压扁的老路）；改为 normal 后
+       min-content = 最长词（如完整 URL），宽内容自然溢出触发 wrapper 滚动，
+       普通文本仍靠 overflow-wrap: break-word 兜底换行 */
+    word-break: normal;
+    overflow-wrap: break-word;
+  }
 }
 
 /* ============================================================================
@@ -1253,6 +1285,8 @@
   position: static;
   grid-row: 1;
   grid-column: 1;
+  /* 图标下移与首行文字垂直居中：(首行高 1.8em − 图标 24px) / 2 */
+  margin-top: calc((2.0em - 24px) / 2);
 }
 /* 标题/描述等全部内容排在图标右侧一列：正文容器是唯一内容列（grid 项
    min-width: 0 防长文本撑破网格） */
@@ -1277,6 +1311,32 @@
 }
 .editor-content [data-card-type][data-card-url] {
   cursor: text;
+}
+
+/* URL 卡片右上角"打开"指示：mask 箭头（↗），由 data-card-url 驱动显隐
+   （设置 URL 即出现、清空即消失），编辑器/发布页/help 共用；伪元素不进
+   contentDOM、不可单独点击，编辑态仅作视觉提示 */
+:is(.editor-content, .help-content) [data-card-type][data-card-url]::after {
+  content: '';
+  position: absolute;
+  right: 16px;
+  top: 16px;
+  width: 18px;
+  height: 18px;
+  background-color: #9ca3af;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 17 17 7'/%3E%3Cpath d='M7 7h10v10'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 17 17 7'/%3E%3Cpath d='M7 7h10v10'/%3E%3C/svg%3E");
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  mask-position: center;
+}
+/* hover 时图标加深，呼应整卡 hover 反馈 */
+:is(.editor-content, .help-content) a[data-card-type][data-card-url]:hover::after {
+  background-color: #6b7280;
+}
+/* 横向布局 + URL：内容列直通右缘，预留图标位防长标题与右上图标重叠 */
+:is(.editor-content, .help-content) [data-card-type][data-horizontal='true'][data-card-url] {
+  padding-right: 42px;
 }
 
 /* ============================================================================

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-# YokiMind · 一键安装脚本（源码部署 · Linux / macOS）
+# Yokimind · 一键安装脚本（源码部署 · Linux / macOS）
 #
 # 面向 git clone 用户的部署入口，一条命令完成「配置生成 → 镜像拉取 → 启动 → 验证」：
 #
@@ -80,7 +80,7 @@ LOG_FILE="install.log"
 # install.log 紧接着重建，保证内容只属于本次安装
 rm -f "$LOG_FILE" "$NOTES_FILE"
 {
-  printf 'YokiMind 安装日志  %s\n' "$(date '+%Y-%m-%d %H:%M:%S')"
+  printf 'Yokimind 安装日志  %s\n' "$(date '+%Y-%m-%d %H:%M:%S')"
   printf '脚本目录：%s\n\n' "$(pwd)"
 } > "$LOG_FILE"
 
@@ -230,7 +230,7 @@ ok "docker / compose v2 就绪"
 OUR_STACK=0
 if docker compose ps -q app 2>/dev/null | grep -q .; then
   OUR_STACK=1
-  warn "检测到本目录的 YokiMind 栈已在运行，本次执行将按「更新」处理（数据卷不受影响）"
+  warn "检测到本目录的 Yokimind 栈已在运行，本次执行将按「更新」处理（数据卷不受影响）"
 fi
 step_ok
 
@@ -312,7 +312,7 @@ step 3 "生成部署配置 .env"
 
 if [ ! -f "$ENV_FILE" ]; then
   cat > "$ENV_FILE" <<EOF
-# YokiMind 部署配置（由 install.sh 自动生成于 $(date '+%Y-%m-%d %H:%M:%S')）
+# Yokimind 部署配置（由 install.sh 自动生成于 $(date '+%Y-%m-%d %H:%M:%S')）
 #
 # 变量完整说明：同目录 README.md「配置说明」；本次实际生效值清单：NOTES.md
 # 修改后执行 docker compose up -d 重建容器生效
@@ -449,7 +449,7 @@ FINAL_RUSTFS_AK=$(env_get RUSTFS_ACCESS_KEY)
 FINAL_RUSTFS_SK=$(env_get RUSTFS_SECRET_KEY)
 
 cat > "$NOTES_FILE" <<EOF
-# YokiMind 安装备注（自动生成）
+# Yokimind 安装备注（自动生成）
 
 > 由 install.sh 于 $(date '+%Y-%m-%d %H:%M:%S') 生成，每次安装成功后重建。
 > 完整部署文档（备份/恢复/HTTPS/故障排查）见同目录 [README.md](./README.md)。
@@ -523,7 +523,7 @@ step_ok
 # ============================================================================
 TOTAL_SECS=$(( $(date +%s) - TOTAL_T0 ))
 printf '\n'
-ok "YokiMind 安装完成（总耗时 ${TOTAL_SECS}s）"
+ok "Yokimind 安装完成（总耗时 ${TOTAL_SECS}s）"
 printf '  访问地址：http://%s:%s（本机 http://localhost:%s）\n' "$PRIMARY_IP" "$FINAL_PORT" "$FINAL_PORT"
 printf '  安装备注：%s/%s（含本次全部实际配置）\n' "$(pwd)" "$NOTES_FILE"
 printf '  安装日志：%s/%s（本次安装完整输出，排查问题用）\n' "$(pwd)" "$LOG_FILE"

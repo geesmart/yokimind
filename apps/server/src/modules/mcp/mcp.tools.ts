@@ -14,7 +14,7 @@ import type { AgentSearchMode } from '~/modules/agent/agent.schema.js'
 
 /**
  * MCP 工具注册（7 个，覆盖读 + 写 + 检索 + 问答）
- * 全部薄封装 agent.service（与 Agent HTTP API / CLI 共用底座）；
+ * 全部薄封装 agent.service（与 Agent HTTP API 共用底座）；
  * 工具级错误 catch 后转 isError 文本结果（不打断 MCP 会话），
  * 协议级错误（认证/传输）由 mcp.controller 处理
  */

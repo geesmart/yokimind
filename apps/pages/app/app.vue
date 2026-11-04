@@ -17,9 +17,9 @@ useHead({
   titleTemplate: (title?: string) => {
     const siteName =
       siteSettings.value?.siteTitle || siteSettings.value?.wikiName || null
-    if (!title) return siteName ?? '墨刻文档 — 知识发布平台'
+    if (!title) return siteName ?? 'Yokimind — 知识发布平台'
     if (siteName && title === siteName) return title
-    return `${title} · ${siteName ?? '墨刻文档'}`
+    return `${title} · ${siteName ?? 'Yokimind'}`
   },
 })
 </script>

@@ -111,9 +111,9 @@
        段落基础字号/上边距归零由共享包的 p 规则提供。
        pages 发布页（裸 HTML 无 .ProseMirror）在 help-content.css 中
        以 .help-content > p 复刻同款节奏。 */
-    > p {
-      margin-top: 10px;
-    }
+    // > p {
+    //   margin-top: 10px;
+    // }
   }
 
   /* ==========================================================================
@@ -231,11 +231,11 @@
     background: var(--md-color-border);
   }
 
-  /* ---- 4.2 整行/整列选中：浅紫背景 ----
+  /* ---- 4.2 整行/整列选中：浅蓝背景 ----
      Tiptap 选中整行/列时自动添加 .selectedCell，此处以更高优先级覆盖，
      用 !important 确保覆盖 Tiptap 默认的蓝色选中样式。 */
   .ProseMirror .selectedCell {
-    background-color: rgba(112, 57, 255, 0.08) !important;
+    background-color: rgba(37, 99, 235, 0.08) !important;
   }
 
   /* ---- 4.3 去掉 Tiptap 默认选中单元格的伪元素边框 ---- */
@@ -260,21 +260,28 @@
   }
 
   /* ==========================================================================
-     六、标题折叠（编辑态交互）
+     六、标题折叠（编辑/预览态交互）
      --------------------------------------------------------------------------
      HeadingFold 扩展（extensions/heading-fold.ts）：顶层标题可折叠本节。
      gutter 常驻元素与悬停手柄（左→右，槽位相对标题左缘）：
        [H 层级图标 -64~-46] [⋮⋮ 拖拽手柄 -40~-20（悬停）] [▼ 折叠箭头 -20~-2]
      - 折叠箭头由本节 ::after 渲染：悬停所在标题行才显示（平时透明
-       但保持占位——移入箭头区域即触发宿主 :hover，箭头现身可点击）；
-       图形为 Flowbite 实心三角（caret-right，原生指向右），展开态旋转
-       90° 朝下（▼），折叠态不旋转指向右（▶，表示「点击展开」）；
+       但保持占位——移入箭头区域即触发宿主 :hover，箭头现身可点击；
+       命中盒为 [-20,0] × 行高全高，兼作 grip → 文字的悬停桥接通道）；
+       图形为 Flowbite 实心三角（caret-right 原生指向右），朝向由 mask
+       承载：展开态 mask 内预旋转 90° 朝下（▼），折叠态换未旋转 mask
+       指向右（▶，表示「点击展开」）；元素本身不做 rotate/translate，
+       否则全高命中盒会被转成宽矮 quad 破坏悬停通道（见主规则注释）；
        点击热区由扩展的 handleDOMEvents.mousedown 读取本规则的计算
        left/width 定位（±4px 容差，桌面/移动端通用）；
      - 折叠后内容区由 Decoration.node 加 fold-hidden 类隐藏（display:none），
        纯视图层不改动文档；发布页不加载本文件，内容恒展开；
-     - 折叠交互仅在可编辑态存在：PM 只读实例（AI 预览 / 文档预览模式）
-       view.dom 为 contenteditable='false'，箭头不渲染。
+     - 生效范围：可编辑态 + 主编辑器预览模式。选择器用 :is() 同时命中
+       [contenteditable='true']（编辑态）与 .fold-enabled[contenteditable='false']
+       （fold-enabled 类由扩展的 plugin view 只给 foldInPreview 实例——
+       主编辑器——打上，AI 预览只读实例无此类，箭头不渲染、内容恒展开）；
+       预览态点击箭头切换内存 folded 属性，onUpdate 被 index.vue 的
+       !isEditable 守卫跳过，不触发保存，刷新即还原。
      ========================================================================== */
 
   /* 折叠隐藏：!important 压过块自身的 display 规则（如 [data-columns] 的 flex） */
@@ -285,21 +292,37 @@
   /* 顶层标题：折叠箭头（Flowbite caret-right 实心三角，
      github.com/themesberg/flowbite-icons），图形原生指向右，
      展开态旋转 90° 朝下（▼）；默认透明，悬停所在标题行才显示；
-     盒子 [-20,0]：图形 12px 居中（视觉约 [-16,-4]），右缘与标题文字
-     左缘相接、左缘与悬停 grip 根元素（[-40,-20]）相接——grip → 箭头 →
-     文字的整段悬停路径无缝（标题块上手柄桥接条由组件隐藏，全靠本盒补位）；
+     盒子 [-20,0] × 行高全高：图形 12px 居中（视觉约 [-16,-4]），右缘与
+     标题文字左缘相接、左缘与悬停 grip 根元素（[-40,-20]）相接——grip →
+     箭头 → 文字的整段悬停路径无缝（标题块上手柄桥接条由组件隐藏，
+     全靠本盒补位）；全高是关键：gutter 在 view.dom 之外，行高上下边缘
+     若不被本盒覆盖，鼠标从文字移向 grip 时会触发官方插件 mouseleave
+     误隐藏手柄（「行内移动手柄消失」bug），详见 height 注释；
      定位基准为标题自身的 position: relative（§二 为层级图标设置） */
-  .ProseMirror[contenteditable='true'] > :is(h1, h2, h3, h4, h5, h6)::after {
+  .ProseMirror:is([contenteditable='true'], .fold-enabled[contenteditable='false'])
+    > :is(h1, h2, h3, h4, h5, h6)::after {
     content: '';
     position: absolute;
     left: -20px;
-    top: 50%;
-    transform: translateY(-50%) rotate(90deg);
+    top: 0;
     width: 20px;
-    height: 18px;
+    /* 行高全高（100% = 标题 padding box = 行高，H1 36 / H2 32 / H3 28px），
+       而非图形高：标题块悬停时手柄桥接条由组件隐藏（over-heading），本盒
+       是 grip → 箭头 → 文字的唯一悬停通道；若只有图形高度的 18px 居中盒，
+       行高上下边缘带区漏空，鼠标从文字移向 grip 时落入 view.dom 之外的
+       gutter，触发官方插件 mouseleave 误隐藏手柄（「行内移动手柄消失」bug）。
+       命中盒不得做 rotate/translate 变换：盒变全高后 rotate(90deg) 会把它
+       转成「宽而矮」的斜 quad（视觉与命中一致），行高上下边缘重新漏空、
+       左右还各溢出 (行高-宽)/2 压到 grip 与文字上。图形朝向改由 mask 承载
+       （展开态 mask 内预旋转 ▼，折叠态换原生 ▶ mask，见 [data-folded] 规则）。
+       mask 图形仍 12px 居中、视觉不变，仅命中盒变全高——折叠点击热区
+       （heading-fold 的 mousedown 按 left/width 判 X、不判 Y）随之变为
+       整行高的左槽竖带，与 Notion 一致 */
+    height: 100%;
     background-color: #e5e5e5; /* 比层级图标（--md-color-text-disabled #a1a1a1）浅两档 */
-    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='currentColor' fill-rule='evenodd' d='M10.271 5.575C8.967 4.501 7 5.43 7 7.12v9.762c0 1.69 1.967 2.618 3.271 1.544l5.927-4.881a2 2 0 0 0 0-3.088l-5.927-4.88Z' clip-rule='evenodd'/%3E%3C/svg%3E");
-    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='currentColor' fill-rule='evenodd' d='M10.271 5.575C8.967 4.501 7 5.43 7 7.12v9.762c0 1.69 1.967 2.618 3.271 1.544l5.927-4.881a2 2 0 0 0 0-3.088l-5.927-4.88Z' clip-rule='evenodd'/%3E%3C/svg%3E");
+    /* 展开态 ▼：原生 ▶ 路径在 SVG 内 rotate(90 12 12) 预旋转朝下 */
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='currentColor' fill-rule='evenodd' transform='rotate(90 12 12)' d='M10.271 5.575C8.967 4.501 7 5.43 7 7.12v9.762c0 1.69 1.967 2.618 3.271 1.544l5.927-4.881a2 2 0 0 0 0-3.088l-5.927-4.88Z' clip-rule='evenodd'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='currentColor' fill-rule='evenodd' transform='rotate(90 12 12)' d='M10.271 5.575C8.967 4.501 7 5.43 7 7.12v9.762c0 1.69 1.967 2.618 3.271 1.544l5.927-4.881a2 2 0 0 0 0-3.088l-5.927-4.88Z' clip-rule='evenodd'/%3E%3C/svg%3E");
     -webkit-mask-repeat: no-repeat;
     mask-repeat: no-repeat;
     -webkit-mask-position: center;
@@ -321,13 +344,17 @@
       opacity 0.15s ease;
   }
 
-  /* 已折叠标题：箭头回到原生朝向，指向右侧（▶） */
-  .ProseMirror[contenteditable='true'] > :is(h1, h2, h3, h4, h5, h6)[data-folded]::after {
-    transform: translateY(-50%);
+  /* 已折叠标题：箭头指向右侧（▶）——换回未旋转的原生 caret mask
+     （元素本身无 transform，见上方主规则注释） */
+  .ProseMirror:is([contenteditable='true'], .fold-enabled[contenteditable='false'])
+    > :is(h1, h2, h3, h4, h5, h6)[data-folded]::after {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='currentColor' fill-rule='evenodd' d='M10.271 5.575C8.967 4.501 7 5.43 7 7.12v9.762c0 1.69 1.967 2.618 3.271 1.544l5.927-4.881a2 2 0 0 0 0-3.088l-5.927-4.88Z' clip-rule='evenodd'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='currentColor' fill-rule='evenodd' d='M10.271 5.575C8.967 4.501 7 5.43 7 7.12v9.762c0 1.69 1.967 2.618 3.271 1.544l5.927-4.881a2 2 0 0 0 0-3.088l-5.927-4.88Z' clip-rule='evenodd'/%3E%3C/svg%3E");
   }
 
   /* 悬停顶层标题：显示箭头并加深（与层级图标 hover 色一致） */
-  .ProseMirror[contenteditable='true'] > :is(h1, h2, h3, h4, h5, h6):hover::after {
+  .ProseMirror:is([contenteditable='true'], .fold-enabled[contenteditable='false'])
+    > :is(h1, h2, h3, h4, h5, h6):hover::after {
     opacity: 1;
     background-color: #525252;
   }
@@ -361,7 +388,8 @@
     }
 
     /* 折叠箭头移进标题 padding 区右侧 [18,36]（层级图标左侧 [0,18]） */
-    .ProseMirror[contenteditable='true'] > :is(h1, h2, h3, h4, h5, h6)::after {
+    .ProseMirror:is([contenteditable='true'], .fold-enabled[contenteditable='false'])
+    > :is(h1, h2, h3, h4, h5, h6)::after {
       left: 18px;
     }
   }

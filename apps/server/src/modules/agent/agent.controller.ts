@@ -9,10 +9,17 @@ import {
   AgentDocumentCreateSchema,
   AgentDocumentUpdateSchema,
 } from './agent.schema.js'
-import { listWikis, getTree, search, getDocument, createDocument, updateDocument } from './agent.service.js'
+import {
+  listWikis,
+  getTree,
+  search,
+  getDocument,
+  createDocument,
+  updateDocument,
+} from './agent.service.js'
 
 /**
- * 智能体接入层 HTTP API（CLI 主消费方，MCP 工具走同一 service 层）
+ * 智能体接入层 HTTP API（脚本与外部智能体的直连入口，MCP 工具走同一 service 层）
  * 认证：PAT（Authorization: Bearer yki_xxx，patAuthMiddleware 注入 userId）；全部 POST（server_rules 约定）
  * 响应统一 c.success 包装；错误经全局 onError 转 { status: <错误码>, info }
  */

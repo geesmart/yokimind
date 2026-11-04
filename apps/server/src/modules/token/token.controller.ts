@@ -6,7 +6,7 @@ import { createToken, listTokens, revokeToken } from './token.service.js'
 
 /**
  * 个人访问令牌（PAT）控制器
- * 供 web 设置页管理智能体接入令牌；MCP / Skills / Agent API / CLI 以 Bearer 消费
+ * 供 web 设置页管理智能体接入令牌；MCP / Skills / Agent API 以 Bearer 消费
  * 管理接口需要登录态（authMiddleware），PAT 本身不用于本控制器
  */
 const tokenController = new Hono()

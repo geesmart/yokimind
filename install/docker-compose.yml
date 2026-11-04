@@ -2,7 +2,7 @@
 # 显式指定而不取目录名，避免 git clone 目录不叫 yokimind 时容器命名混乱
 name: yokimind
 
-# YokiMind · Docker Compose 部署编排（客户版）
+# Yokimind · Docker Compose 部署编排（客户版）
 #
 # 单镜像全栈：一个应用容器（caddy 统一入口 + Hono API + web 静态 + Nuxt 公开站）
 # + PostgreSQL + Redis + Qdrant（向量检索）+ RustFS（S3 兼容对象存储）
@@ -68,8 +68,9 @@ services:
       retries: 12
 
   rustfs:
-    # RustFS：S3 兼容对象存储（MinIO 的 Rust 替代品），承载用户上传的图片等媒体文件
-    image: rustfs/rustfs:1.0.0
+    # RustFS：S3 兼容对象存储（MinIO 的 Rust 替代品），承载用户上传的图片等媒体文件；
+    # latest 跟随上游更新（对象存储元数据格式变更时旧数据卷可能无法直接升级）
+    image: rustfs/rustfs:latest
     restart: unless-stopped
     environment:
       # 访问凭据：与应用 S3_ACCESS_KEY / S3_SECRET_KEY 对齐（生产环境务必改默认值）

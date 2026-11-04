@@ -35,7 +35,7 @@ export interface SkillEntry {
 export async function listSkills(userId: string): Promise<SkillEntry[]> {
   const wikis = await listWikisByUserId(userId)
   return wikis.map((w) => {
-    const description = (w.description?.trim() || `YokiMind 知识库「${w.name}」`).slice(0, DESCRIPTION_MAX_LENGTH)
+    const description = (w.description?.trim() || `Yokimind 知识库「${w.name}」`).slice(0, DESCRIPTION_MAX_LENGTH)
     return { wikiId: w.id, name: slugifyWiki(w.name, w.id), description }
   })
 }
@@ -45,7 +45,7 @@ function renderOutline(nodes: AgentTreeNode[], depth: number, counter: { count: 
   const lines: string[] = []
   for (const node of nodes) {
     if (counter.count >= OUTLINE_MAX_NODES) {
-      lines.push(`${'  '.repeat(depth)}- （更多节点已截断，请用 MCP wiki_tree / CLI tree 查看）`)
+      lines.push(`${'  '.repeat(depth)}- （更多节点已截断，请用 MCP wiki_tree 查看）`)
       break
     }
     counter.count += 1
@@ -76,7 +76,7 @@ name: ${slugifyWiki(wiki.name, wikiId)}
 description: ${description}
 ---
 
-# YokiMind 知识库：${wiki.name}
+# Yokimind 知识库：${wiki.name}
 
 ${description}
 
@@ -89,7 +89,7 @@ ${outline || '（空库，无文档）'}
 
 ## 如何检索与读取
 
-优先使用 MCP 工具（若已配置 YokiMind MCP）：
+优先使用 MCP 工具（若已配置 Yokimind MCP）：
 
 - \`wikis_list\`：列出我的知识库
 - \`wiki_tree\`：查看文档树（参数 wikiId=${wikiId}）
@@ -97,15 +97,7 @@ ${outline || '（空库，无文档）'}
 - \`read_document\`：读取文档全文（参数 nodeId 取自上方大纲）
 - \`ask_knowledge\`：RAG 问答（参数 wikiId=${wikiId}、question）
 
-未配置 MCP 时，可经 CLI（\`yokimind\` 命令）访问同一能力：
-
-\`\`\`bash
-yokimind search "关键词" --wiki ${wikiId}   # 检索
-yokimind doc get <nodeId>                   # 读取文档（Markdown）
-yokimind tree ${wikiId}                      # 完整文档树
-\`\`\`
-
-或直接调用 REST API（POST，Bearer PAT 认证）：
+未配置 MCP 时，可直接调用 REST API（POST，Bearer PAT 认证）：
 
 \`\`\`bash
 curl -X POST <站点地址>/api/v1/agent/search \\
@@ -115,8 +107,8 @@ curl -X POST <站点地址>/api/v1/agent/search \\
 
 ## 如何写入
 
-- 创建：MCP \`create_document\`（markdown 正文，首个 H1 自动提取为标题）或 CLI \`yokimind doc create\`
-- 更新：MCP \`update_document\` / CLI \`yokimind doc update\`（Markdown 全量覆盖，后写覆盖语义；建议先读取原文再合并修改）
+- 创建：MCP \`create_document\`（markdown 正文，首个 H1 自动提取为标题）
+- 更新：MCP \`update_document\`（Markdown 全量覆盖，后写覆盖语义；建议先读取原文再合并修改）
 - 服务端自动把 Markdown 转为编辑器 JSON 并触发 RAG 重索引，无需关心存储细节
 `
 }

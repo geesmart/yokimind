@@ -1,4 +1,4 @@
-# 墨刻文档公开内容站 robots 配置
+# Yokimind 公开内容站 robots 配置
 User-agent: *
 Allow: /
 
